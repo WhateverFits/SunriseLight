@@ -1,7 +1,8 @@
 #include <TimeAlarms.h>
 
 #include <Time.h>
-#include <TimeLib.h> 
+#include <TimeLib.h>
+#include <Timezone.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <Adafruit_NeoPixel.h>
@@ -15,8 +16,13 @@
 const char ssid[] = "*************";  //  your network SSID (name)
 const char pass[] = "********";       // your network password
 IPAddress timeServer(192, 168, 80, 1);
-const int timeZone = -8;  // Pacific Standard Time (USA)
+//const int timeZone = -8;  // Pacific Standard Time (USA)
 //const int timeZone = -7;  // Pacific Daylight Time (USA)
+
+TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
+TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
+Timezone myTZ(myDST, mySTD);
+
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(LEDS, 7, NEO_GRB + NEO_KHZ800);
 Sunrise sunrise(DELAY, strip, LEDS);
@@ -32,13 +38,13 @@ void setup() {
   strip.show(); // Initialize all pixels to 'off'
 
   WiFi.begin(ssid, pass);
-  
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  
+
   Serial.print("IP number assigned by DHCP is ");
   Serial.println(WiFi.localIP());
   Serial.println("Starting UDP");
@@ -63,12 +69,16 @@ bool debounceButton(int pin) {
   }
 }
 
+long lastTime = 0;
+TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
+time_t utc, local;
+
 void loop() {
   sunrise.Update();
   static bool bSunrise = true;
   static bool bSunset = false;
 
-  if (debounceButton(0)){
+  if (debounceButton(0)) {
     if (!bSunrise && !bSunset) {
       bSunrise = true;
       sunrise.StartSunrise();
@@ -81,6 +91,11 @@ void loop() {
       bSunset = false;
     }
   }
+  long milliseconds = millis();
+  if (milliseconds >= lastTime + 1000) {
+    local = myTZ.toLocal(utc, &tcr);
+    printTime(local, tcr -> abbrev);
+  }
 
 }
 
@@ -89,36 +104,13 @@ void loop3() {
   static int i = 0;
   if (abs(millis() - last) > 200) {
     last = millis();
-    strip.setPixelColor(i, 50,50,50); // Draw new pixel
-    strip.setPixelColor(i-5, 0,0,0); // Erase pixel a few steps back
+    strip.setPixelColor(i, 50, 50, 50); // Draw new pixel
+    strip.setPixelColor(i - 5, 0, 0, 0); // Erase pixel a few steps back
     strip.show();
     i++;
     if (i > 205)
       i = 0;
   }
-}
-void digitalClockDisplay(){
-  // digital clock display of the time
-  Serial.print(hour());
-  printDigits(minute());
-  printDigits(second());
-  Serial.print(" ");
-  Serial.print(day());
-  Serial.print(".");
-  Serial.print(month());
-  Serial.print(".");
-  Serial.print(year()); 
-  Serial.println(); 
-}
-
-
-
-void printDigits(int digits){
-  // utility for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
-  if(digits < 10)
-    Serial.print('0');
-  Serial.print(digits);
 }
 
 /*-------- NTP code ----------*/
@@ -143,7 +135,7 @@ time_t getNtpTime()
       secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
-      return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
+      return secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
     }
   }
   Serial.println("No NTP Response :-(");
@@ -167,8 +159,44 @@ void sendNTPpacket(IPAddress &address)
   packetBuffer[14]  = 49;
   packetBuffer[15]  = 52;
   // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:                 
+  // you can send a packet requesting a timestamp:
   Udp.beginPacket(address, 123); //NTP requests are to port 123
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
+}
+
+void printTime(time_t t, char *tz)
+{
+    sPrintI00(hour(t));
+    sPrintDigits(minute(t));
+    sPrintDigits(second(t));
+    Serial.print(' ');
+    Serial.print(dayShortStr(weekday(t)));
+    Serial.print(' ');
+    sPrintI00(day(t));
+    Serial.print(' ');
+    Serial.print(monthShortStr(month(t)));
+    Serial.print(' ');
+    Serial.print(year(t));
+    Serial.print(' ');
+    Serial.print(tz);
+    Serial.println();
+}
+
+//Print an integer in "00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintI00(int val)
+{
+    if (val < 10) Serial.print('0');
+    Serial.print(val, DEC);
+    return;
+}
+
+//Print an integer in ":00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintDigits(int val)
+{
+    Serial.print(':');
+    if(val < 10) Serial.print('0');
+    Serial.print(val, DEC);
 }
