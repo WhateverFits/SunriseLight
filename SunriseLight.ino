@@ -8,8 +8,10 @@
 #include <Timezone.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
+#include "Config.h"
 #include "Sunrise.h"
-
+#include "NTP.h"
+#include "WebServer.h"
 
 #define DEBOUNCE 50
 #define REPEATDELAY 1000
@@ -19,24 +21,12 @@
 #define NEO_PIN D6
 #define BUTTON_PIN D2
 
-//const char* ssid = "The Ranch-2.4";  //  your network SSID (name)
-//const char* pass = "916-955-0942";       // your network password
-//const char* ssid = "ThunderLizard";  //  your network SSID (name)
-//const char* pass = "SnarfSnarf";       // your network password
-const char* ssid = "Acrid";  //  your network SSID (name)
-const char* pass = "MyVoiceIsMyPassport";       // your network password
-//const char* ssid = "MakerHQ";  //  your network SSID (name)
-//const char* pass = "sacramentomaker916";       // your network password
-IPAddress timeServer(192, 168, 80, 1);
-//IPAddress timeServer(63, 224, 11, 139);
-const char* ntpServerName = "pool.ntp.org";
 TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
 TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
 Timezone myTZ(myDST, mySTD);
 
 
 Sunrise sunrise = Sunrise(DELAY, LEDS, NEO_PIN);
-WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
 
@@ -69,36 +59,55 @@ bool debounceButton(int pin) {
 
 TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
 void MorningAlarm() {
-  Serial.println("Good morning!");
-  time_t utc = now();
-  time_t local = myTZ.toLocal(utc, &tcr);
-  printTime(local, tcr -> abbrev);
-  sunrise.StartSunrise();
+  bool enabled;
+  EEPROM.get(0, enabled);
+  if (enabled) 
+  {
+    Serial.println("Good morning!");
+    time_t utc = now();
+    time_t local = myTZ.toLocal(utc, &tcr);
+    printTime(local, tcr -> abbrev);
+    sunrise.StartSunrise();
+  }
 }
 
 void EveningAlarm() {
-  Serial.println("Good evening!");
-  time_t utc = now();
-  time_t local = myTZ.toLocal(utc, &tcr);
-  printTime(local, tcr -> abbrev);
-  sunrise.StartSunset();
+  bool enabled;
+  EEPROM.get(0, enabled);
+  if (enabled) 
+  {
+    Serial.println("Good evening!");
+    time_t utc = now();
+    time_t local = myTZ.toLocal(utc, &tcr);
+    printTime(local, tcr -> abbrev);
+    sunrise.StartSunset();
+  }
 }
 
 void MoonAlarm() {
-  Serial.println("Watch out for wherewolves!");
-  time_t utc = now();
-  time_t local = myTZ.toLocal(utc, &tcr);
-  printTime(local, tcr -> abbrev);
-  sunrise.StartMoonrise();
+  bool enabled;
+  EEPROM.get(0, enabled);
+  if (enabled) 
+  {
+    Serial.println("Watch out for wherewolves!");
+    time_t utc = now();
+    time_t local = myTZ.toLocal(utc, &tcr);
+    printTime(local, tcr -> abbrev);
+    sunrise.StartMoonrise();
+  }
 }
 
 void MoonSetAlarm() {
-  Serial.println("Whew!");
-  time_t utc = now();
-  time_t local = myTZ.toLocal(utc, &tcr);
-  printTime(local, tcr -> abbrev);
-
-  sunrise.StartMoonset();
+  bool enabled;
+  EEPROM.get(0, enabled);
+  if (enabled) 
+  {
+    Serial.println("Whew!");
+    time_t utc = now();
+    time_t local = myTZ.toLocal(utc, &tcr);
+    printTime(local, tcr -> abbrev);
+    sunrise.StartMoonset();
+  }
 }
 
 long lastTime = 0;
@@ -113,9 +122,12 @@ int createAlarmUTC(int h, int m, OnTick_t onTickHandler) {
   t.Second = 0;
   t.Minute = m;
   t.Hour = h;
+
+  // Unused
   t.Day = 18;
   t.Month = 11;
-  t.Year = 2017 - 1970;
+  t.Year = 2018 - 1970;
+  
   time_t utc = makeTime(t);
   return Alarm.alarmRepeat(hour(utc), m, 0, onTickHandler);
 }
@@ -125,9 +137,12 @@ int createAlarm(int h, int m, OnTick_t onTickHandler) {
   t.Second = 0;
   t.Minute = m;
   t.Hour = h;
+  
+  // Unused
   t.Day = 18;
   t.Month = 11;
-  t.Year = 2017 - 1970;
+  t.Year = 2018 - 1970;
+  
   time_t localTime = makeTime(t);
   time_t utc = myTZ.toUTC(localTime);
   return Alarm.alarmRepeat(hour(utc), m, 0, onTickHandler);
@@ -140,77 +155,10 @@ void setupAlarms() {
     }
 
     getSunriseSunsetTimes();
-    createAlarm(22, 0, MoonAlarm);
-    createAlarm(23, 0, MoonSetAlarm);
+    createAlarm(21, 0, MoonAlarm);
+    createAlarm(22, 30, MoonSetAlarm);
     alarmsSet = true;
   }
-}
-
-/*void loop3() {
-  static long last = 0;
-  static int i = 0;
-  if (abs(millis() - last) > 200) {
-    last = millis();
-    strip.setPixelColor(i, 50, 50, 50); // Draw new pixel
-    strip.setPixelColor(i - 5, 0, 0, 0); // Erase pixel a few steps back
-    strip.show();
-    i++;
-    if (i > 205)
-      i = 0;
-  }
-  }*/
-
-/*-------- NTP code ----------*/
-
-const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
-byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
-
-time_t getNtpTime()
-{
-  while (Udp.parsePacket() > 0) ; // discard any previously received packets
-  Serial.println("Transmit NTP Request");
-  WiFi.hostByName(ntpServerName, timeServer);
-  sendNTPpacket(timeServer);
-  uint32_t beginWait = millis();
-  while (millis() - beginWait < 1500) {
-    int size = Udp.parsePacket();
-    if (size >= NTP_PACKET_SIZE) {
-      Serial.println("Receive NTP Response");
-      Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
-      unsigned long secsSince1900;
-      // convert four bytes starting at location 40 to a long integer
-      secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
-      secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
-      secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
-      secsSince1900 |= (unsigned long)packetBuffer[43];
-      return secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
-    }
-  }
-  Serial.println("No NTP Response :-(");
-  return 0; // return 0 if unable to get the time
-}
-
-// send an NTP request to the time server at the given address
-void sendNTPpacket(IPAddress &address)
-{
-  // set all bytes in the buffer to 0
-  memset(packetBuffer, 0, NTP_PACKET_SIZE);
-  // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
-  packetBuffer[12]  = 49;
-  packetBuffer[13]  = 0x4E;
-  packetBuffer[14]  = 49;
-  packetBuffer[15]  = 52;
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:
-  Udp.beginPacket(address, 123); //NTP requests are to port 123
-  Udp.write(packetBuffer, NTP_PACKET_SIZE);
-  Udp.endPacket();
 }
 
 void printTime(time_t t, char *tz)
@@ -310,38 +258,87 @@ void setup() {
 
   Serial.println();
   Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-
-  WiFi.begin(ssid, pass);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  int n = WiFi.scanNetworks();
+  int found = -1;
+  Serial.println("scan done");
+  if (n == 0)
+    Serial.println("no networks found");
+  else
+  {
+    Serial.print(n);
+    Serial.println(" networks found");
+    for (int stored = 0; stored < wifiCount && found == -1; stored++) {
+      for (int i = 0; i < n; ++i)
+      {
+        if (WiFi.SSID(i) == ssids[stored])
+        {
+          found = stored;
+          Serial.print("Connecting to ");
+          Serial.println(ssids[found]);
+          break;
+        }
+      }
+    }
   }
 
-  Serial.print("NEO_PIN: ");
-  Serial.println(NEO_PIN);
-  Serial.print("BUTTON: ");
-  Serial.println(BUTTON_PIN);
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Netmask: ");
-  Serial.println(WiFi.subnetMask());
-  Serial.print("Gateway: ");
-  Serial.println(WiFi.gatewayIP());
+  if (found > -1)
+  {
+    //Serial.print("Connecting to ");
+    //Serial.println(ssids[found]);
+
+    WiFi.begin(ssids[found], passs[found]);
+
+    bool first = true;
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+      if (first)
+        sunrise.SetPixel(0, 50, 0, 0);
+      else
+        sunrise.SetPixel(0, 0, 0, 50);
+    }
+
+    sunrise.SetPixel(0, 0, 50, 0);
+
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("Netmask: ");
+    Serial.println(WiFi.subnetMask());
+    Serial.print("Gateway: ");
+    Serial.println(WiFi.gatewayIP());
 
 
-  Udp.begin(localPort);
-  Serial.print("Local port: ");
-  Serial.println(Udp.localPort());
-  Serial.println("waiting for sync");
-  setSyncProvider(getNtpTime);
+    Udp.begin(localPort);
+    Serial.print("Local port: ");
+    Serial.println(Udp.localPort());
+    Serial.println("waiting for sync");
+    setSyncProvider(getNtpTime);
+    sunrise.SetPixel(0, 0, 0, 0);
+  } else {
+    sunrise.SetPixel(0, 255, 0, 0);
+  }
+
+  EEPROM.begin(10);
+
+  server.on("/", handleRoot);
+  server.on("/login", handleLogin);
+  server.on("/inline", [](){
+    server.send(200, "text/plain", "this works without need of authentification");
+  });
+
+  server.onNotFound(handleNotFound);
+  //here the list of headers to be recorded
+  const char * headerkeys[] = {"User-Agent","Cookie"} ;
+  size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
+  //ask server to track these headers
+  server.collectHeaders(headerkeys, headerkeyssize );
+  server.begin();
+  Serial.println("HTTP server started");
+
 }
 
 void loop() {
@@ -377,7 +374,8 @@ void loop() {
   }
 
   long milliseconds = millis();
-  if (milliseconds >= lastTime + 30000) {
+  // Take care of rollover
+  if (milliseconds >= lastTime + 30000 || milliseconds < lastTime) {
     utc = now();
     local = myTZ.toLocal(utc, &tcr);
     printTime(local, tcr -> abbrev);
@@ -385,6 +383,7 @@ void loop() {
     setupAlarms();
   }
 
+  server.handleClient();
 }
 
 

@@ -59,7 +59,7 @@ class Sunrise {
       if (R > 0)
         R--;
       for (int i = 0; i < numLeds; i++) {
-        strip->setPixelColor(i, R, G, B);   
+        strip->setPixelColor(i, R, G, B);
       }
     }
 
@@ -98,6 +98,10 @@ class Sunrise {
       showSunset = false;
       showMoon = false;
       startTime = millis();
+    }
+
+    void SetPixel(int pixel, byte r, byte g, byte b) {
+      strip->setPixelColor(pixel, r, g, b);
     }
     
     void Update() {
