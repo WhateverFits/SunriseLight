@@ -7,7 +7,7 @@
 #define FIXEDTIMEINDEX USESUNRISEINDEX + sizeof(bool)
 
 IPAddress timeServer(192, 168, 80, 1);
-const char* ntpServerName = "pool.ntp.org";
+const char* ntpServerName = "us.pool.ntp.org";
 
 const char* ssids[] = {"Acrid", "The Ranch-2.4", "ThunderLizard", "MakerHQ"};
 const char* passs[] = {"MyVoiceIsMyPassport", "916-955-0942", "SnarfSnarf", "sacramentomaker916"};

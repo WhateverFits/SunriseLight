@@ -103,6 +103,27 @@ class Sunrise {
     void SetPixel(int pixel, byte r, byte g, byte b) {
       strip->setPixelColor(pixel, r, g, b);
     }
+
+    String GetState() {
+      if (showSunrise)
+        return "Sunrise";
+      else if (showSunset)
+        return "Sunset";
+      else if (showMoon)
+        return "Moon";
+      else
+        return "Off";
+    }
+
+    float GetPercent() {
+      return ((float)(R + G + B)) / (255.0 * 3.0) * 100.0;
+    }
+
+    String GetColor() {
+      char buffer[7];
+      sprintf(buffer, "%02x%02x%02x", R, G, B);
+      return String(buffer);
+    }
     
     void Update() {
         unsigned long current = millis();

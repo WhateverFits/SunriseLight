@@ -7,11 +7,12 @@
 #include <TimeAlarms.h>
 #include <Timezone.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
+#include <EEPROM.h>
 #include "Config.h"
 #include "Sunrise.h"
 #include "NTP.h"
-#include "WebServer.h"
 
 #define DEBOUNCE 50
 #define REPEATDELAY 1000
@@ -33,6 +34,13 @@ unsigned int localPort = 8888;  // local port to listen for UDP packets
 unsigned long lastButtonTime[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long lastButtonState[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long buttonState[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+long lastTime = 0;
+time_t utc, local;
+
+bool alarmsSet = false;
+int morningIndex = -1;
+int eveningIndex = -1;
 
 bool debounceButton(int pin) {
   bool result = false;
@@ -81,6 +89,7 @@ void EveningAlarm() {
     time_t local = myTZ.toLocal(utc, &tcr);
     printTime(local, tcr -> abbrev);
     sunrise.StartSunset();
+    alarmsSet = false;
   }
 }
 
@@ -109,13 +118,6 @@ void MoonSetAlarm() {
     sunrise.StartMoonset();
   }
 }
-
-long lastTime = 0;
-time_t utc, local;
-
-bool alarmsSet = false;
-int morningIndex = -1;
-int eveningIndex = -1;
 
 int createAlarmUTC(int h, int m, OnTick_t onTickHandler) {
   TimeElements t;
@@ -235,11 +237,28 @@ void getSunriseSunsetTimes() {
       String sunriseMin = sunrise.substring(sunrise.indexOf(':') + 1, sunrise.indexOf(':') + 3);
       String sunsetHour = sunset.substring(sunset.indexOf('T') + 1, sunset.indexOf(':'));
       String sunsetMin = sunset.substring(sunset.indexOf(':') + 1, sunset.indexOf(':') + 3);
+      Serial.println(sunriseHour + ":" + sunriseMin);
       if (morningIndex > -1)
         Alarm.free(morningIndex);
       if (eveningIndex > -1)
         Alarm.free(eveningIndex);
-      morningIndex = createAlarmUTC(sunriseHour.toInt(), sunriseMin.toInt(), MorningAlarm);
+      bool useSunrise;
+      byte hour;
+      byte minute;
+      EEPROM.get(USESUNRISEINDEX, useSunrise);
+      EEPROM.get(FIXEDTIMEINDEX, hour);
+      EEPROM.get(FIXEDTIMEINDEX + sizeof(byte), minute);
+
+      if (useSunrise)
+      {
+        morningIndex = createAlarmUTC(sunriseHour.toInt(), sunriseMin.toInt(), MorningAlarm);
+        Serial.println("Sunrise alarm:" + sunriseHour + ":" + sunriseMin);
+      } 
+      else
+      {
+        morningIndex = createAlarm(hour, minute, MorningAlarm);
+        Serial.println("Sunrise alarm:" + String(hour) + ":" + String(minute));
+      }
       eveningIndex = createAlarmUTC(sunsetHour.toInt(), sunsetMin.toInt(), EveningAlarm);
       break;
     }
@@ -247,6 +266,178 @@ void getSunriseSunsetTimes() {
 
   Serial.println();
   Serial.println("closing connection");
+}
+
+ESP8266WebServer server(80);
+
+//Check if header is present and correct
+bool is_authentified(){
+  unsigned int authkey=-1;
+  EEPROM.get(AUTHKEYINDEX, authkey);
+  Serial.println("Enter is_authentified");
+  if (server.hasHeader("Cookie")){   
+    Serial.print("Found cookie: ");
+    String cookie = server.header("Cookie");
+    Serial.println(cookie);
+    Serial.print("Found authkey: ");
+    Serial.println(authkey);
+    if (cookie.indexOf("ESPSESSIONID=" + String(authkey)) != -1) {
+      Serial.println("Authentification Successful");
+      return true;
+    }
+  }
+  Serial.println("Authentification Failed");
+  return false;  
+}
+
+String genCSS()
+{
+  return String("<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0'><link rel='stylesheet' href='https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css'><script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js'></script><script src='https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js'></script><style>.pb{border:1px solid black;}.ui-title{margin: 0 0 !important;}</style>");
+  //return String("<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0'><style>form{width:80%;margin:0 auto;}label,input{display:inline-block;}label{width:40%;text-align:right;}label+input{width:30%;margin:0 20% 2% 4%;}.l{display:block;text-align:left;margin:0 auto 2% auto;width:60%;}.h{width:10%;margin-right:0px}</style>");
+}
+
+
+//login page, also called for disconnect
+void handleLogin(){
+  String msg;
+  if (server.hasHeader("Cookie")){   
+    Serial.print("Found cookie: ");
+    String cookie = server.header("Cookie");
+    Serial.println(cookie);
+  }
+  if (server.hasArg("DISCONNECT")){
+    Serial.println("Disconnection");
+    String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=0\r\nLocation: /login\r\nCache-Control: no-cache\r\n\r\n";
+    server.sendContent(header);
+    return;
+  }
+  if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")){
+    if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == "admin" ){
+      unsigned int authkey = random(65535);
+      EEPROM.put(AUTHKEYINDEX, authkey);
+      EEPROM.commit();
+      String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=" + String(authkey) + "\r\nLocation: /\r\nCache-Control: no-cache\r\n\r\n";
+      server.sendContent(header);
+      Serial.println("Log in Successful");
+      return;
+    }
+    msg = "Wrong username/password! try again.";
+    Serial.println("Log in Failed");
+  }
+  String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'><form action='/login' method='POST'>";
+  content += "<label>User:</label><input type='text' name='USERNAME' placeholder='user name'>";
+  content += "<label>Password:</label><input type='password' name='PASSWORD' placeholder='password'>";
+  content += "<label></label><input type='submit' name='SUBMIT' value='Submit'></form>" + msg;
+  content += "You also can go <a href='/inline'>here</a></div></body></html>";
+  server.send(200, "text/html", content);
+}
+
+//root page can be accessed only if authentification is ok
+void handleRoot(){
+  Serial.println("Enter handleRoot");
+  String header;
+  if (!is_authentified()){
+    String header = "HTTP/1.1 301 OK\r\nLocation: /login\r\nCache-Control: no-cache\r\n\r\n";
+    server.sendContent(header);
+    return;
+  }
+  String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'>";
+  String msg = "";
+  bool enabled = true;
+  if (server.hasArg("ENABLE")){
+    enabled = server.arg("ENABLE") == "enabled";
+    EEPROM.put(ENABLEDINDEX, enabled);
+    EEPROM.commit();
+  } else {
+    EEPROM.get(ENABLEDINDEX, enabled);
+  }
+
+  bool useSunrise = true;
+  byte hour = 255;
+  byte minute = 255;
+  if (server.hasArg("FIXED")){
+    useSunrise = server.arg("FIXED") != "fixed";
+    EEPROM.put(USESUNRISEINDEX, useSunrise);
+    if (!useSunrise)
+    {
+      Serial.println("TIME: " + server.arg("TIME"));
+      int idx = server.arg("TIME").indexOf(":");
+      if (idx > 0) 
+      {
+        Serial.println("inside:" + String(idx));
+        hour = server.arg("TIME").substring(0, idx).toInt();
+        minute = server.arg("TIME").substring(idx + 1).toInt();
+        Serial.print(hour);
+        Serial.print(":");
+        Serial.println(minute);
+        EEPROM.put(FIXEDTIMEINDEX, hour);
+        EEPROM.put(FIXEDTIMEINDEX + sizeof(byte), minute);
+        
+      }
+    }
+    
+    EEPROM.commit();
+  } else {
+    EEPROM.get(USESUNRISEINDEX, useSunrise);
+  }
+
+  if (server.hasArg("SUNRISE") && server.arg("SUNRISE") == "Sunrise"){
+    sunrise.StartSunrise();
+  }
+
+  if (server.hasArg("SUNSET") && server.arg("SUNSET") == "Sunset"){
+    sunrise.StartSunset();
+  }
+
+  if (!useSunrise)
+  {
+      EEPROM.get(FIXEDTIMEINDEX, hour);
+      EEPROM.get(FIXEDTIMEINDEX + sizeof(byte), minute);
+      if (hour >= 24 || minute >= 60) 
+      {
+        hour = 255;
+        minute = 255;
+      }
+  }
+
+  char minbuf[4];
+  sprintf(minbuf, "%02d", minute);
+
+  char hourbuf[4];
+  sprintf(hourbuf, "%02d", hour);
+
+  msg += "<br/>" + sunrise.GetState();
+
+  content += "<form action='/' method='POST'>";
+  content += "<label class='l'><input type='radio' name='ENABLE' value='enabled' " + (enabled ? String("checked") : String("")) + ">Enabled</label>";
+  content += "<label class='l'><input type='radio' name='ENABLE' value='disabled' " + (!enabled ? String("checked") : String("")) + ">Disabled</label>";
+
+  content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>";
+  content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>";
+  content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) : String("") ) + ":" + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
+  //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>";
+
+  content += "<div><input type='submit' name='SUNRISE' value='Sunrise'><input type='submit' name='SUNSET' value='Sunset'>";
+  content += "<input type='submit' name='SUBMIT' value='Save'></div></form></div><div data-role='footer'><h3>" + msg + "</h3>";
+  content += "<div class='pb' style='width:" + String(sunrise.GetPercent()) + "%;background-color:#" + sunrise.GetColor() + "'>&nbsp;</div>";
+  content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div></body></html>";
+  server.send(200, "text/html", content);
+}
+
+//no need authentification
+void handleNotFound(){
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET)?"GET":"POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i=0; i<server.args(); i++){
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
 }
 
 void setup() {
@@ -289,6 +480,11 @@ void setup() {
     //Serial.print("Connecting to ");
     //Serial.println(ssids[found]);
 
+    uint8_t macAddr[6];
+    WiFi.macAddress(macAddr);
+    char buffer[4];
+    sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
+    WiFi.hostname("SunriseLight" + String(buffer));
     WiFi.begin(ssids[found], passs[found]);
 
     bool first = true;
