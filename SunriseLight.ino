@@ -324,7 +324,7 @@ void handleLogin(){
     msg = "Wrong username/password! try again.";
     Serial.println("Log in Failed");
   }
-  String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'><form action='/login' method='POST'>";
+  String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'><form action='/login' method='POST' data-ajax='false'>";
   content += "<label>User:</label><input type='text' name='USERNAME' placeholder='user name'>";
   content += "<label>Password:</label><input type='password' name='PASSWORD' placeholder='password'>";
   content += "<label></label><input type='submit' name='SUBMIT' value='Submit'></form>" + msg;
@@ -408,20 +408,24 @@ void handleRoot(){
 
   msg += "<br/>" + sunrise.GetState();
 
-  content += "<form action='/' method='POST'>";
+  content += "<form action='/' method='POST' data-ajax='false'>";
   content += "<label class='l'><input type='radio' name='ENABLE' value='enabled' " + (enabled ? String("checked") : String("")) + ">Enabled</label>";
   content += "<label class='l'><input type='radio' name='ENABLE' value='disabled' " + (!enabled ? String("checked") : String("")) + ">Disabled</label>";
 
   content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>";
   content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>";
-  content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) : String("") ) + ":" + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
+  content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
   //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>";
 
-  content += "<div><input type='submit' name='SUNRISE' value='Sunrise'><input type='submit' name='SUNSET' value='Sunset'>";
-  content += "<input type='submit' name='SUBMIT' value='Save'></div></form></div><div data-role='footer'><h3>" + msg + "</h3>";
+  content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button>";
+  content += "<button name='SUBMIT' value='Save'>Save</button></div></form></div><div data-role='footer'><h3>" + msg + "</h3>";
   content += "<div class='pb' style='width:" + String(sunrise.GetPercent()) + "%;background-color:#" + sunrise.GetColor() + "'>&nbsp;</div>";
-  content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div></body></html>";
+  content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div>" + javascript() + "</body></html>";
   server.send(200, "text/html", content);
+}
+
+String javascript() {
+  return "<script>$(document).ready(function() {$('input[type=radio][name=FIXED]').change(function() { if ($('input[name=""FIXED""]:checked').val() == 'fixed') { $('#fixedWrap').show(); } else { $('#fixedWrap').hide(); } } ).change();});</script>";
 }
 
 //no need authentification
