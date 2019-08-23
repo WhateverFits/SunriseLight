@@ -332,7 +332,7 @@ void setup() {
   }
 
   EEPROM.begin(10);
-
+  server.Initialize();
   tm1637.dispNumber(7777);
 }
 
