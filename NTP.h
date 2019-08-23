@@ -27,13 +27,14 @@ void sendNTPpacket(IPAddress &address)
   Udp.endPacket();
 }
 
-bool useNTPPool = false;
+int ntpRetryCount = 3;
+int ntpRetry = 0;
 time_t getNtpTime()
 {
   while (Udp.parsePacket() > 0) ; // discard any previously received packets
   Serial.println("Transmit NTP Request");
   // Fall back to using the global NTP pool server in case we cannot connect to internal NTP server
-  if (useNTPPool)
+  if (ntpRetry > 1)
     WiFi.hostByName(ntpServerName, timeServer);
   sendNTPpacket(timeServer);
   uint32_t beginWait = millis();
@@ -53,11 +54,10 @@ time_t getNtpTime()
     }
   }
   Serial.println("No NTP Response :-(");
-  if (!useNTPPool) 
+  if (ntpRetry < ntpRetryCount) 
   {
-    useNTPPool = true;
+    ntpRetry++;
     return getNtpTime();
   }
   return 0; // return 0 if unable to get the time
 }
-
