@@ -13,9 +13,8 @@ class Webserver {
     void Initialize() {
         server->on("/", [this](){ handleRoot(); });
         server->on("/login", [this](){ handleLogin(); });
-        server->on("/inline", [this](){
-          server->send(200, "text/plain", "this works without need of authentification");
-        });
+        server->on("/status", [this](){ handleStatus(); });
+      
         server->on("/debug", [this](){ handleDebug(); });
         server->onNotFound([this](){ handleNotFound(); });
         
@@ -44,15 +43,12 @@ class Webserver {
     bool is_authenticated(){
       unsigned int authkey=-1;
       EEPROM.get(AUTHKEYINDEX, authkey);
-      Serial.println("Enter is_authenticated");
       if (server->hasHeader("Cookie")){   
-        Serial.print("Found cookie: ");
         String cookie = server->header("Cookie");
-        Serial.println(cookie);
-        Serial.print("Found authkey: ");
-        Serial.println(authkey);
+        //Serial.print("Found authkey: ");
+        //Serial.println(authkey);
         if (cookie.indexOf("ESPSESSIONID=" + String(authkey)) != -1) {
-          Serial.println("Authentification Successful");
+          //Serial.println("Authentification Successful");
           return true;
         }
       }
@@ -62,7 +58,26 @@ class Webserver {
     
     String genCSS()
     {
-      return String("<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0'><link rel='stylesheet' href='https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css'><script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js'></script><script src='https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js'></script><style>.pb{border:1px solid black;}.ui-title{margin: 0 0 !important;}</style>");
+      return String("<head>\n\
+      <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0'>\n\
+      <link rel='stylesheet' href='https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css'>\n\
+      <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js'></script>\n\
+      <script src='https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js'></script>\n\
+      <style>.pb{border:1px solid black;}.ui-title{margin: 0 0 !important;}</style>\n\
+      <script>\n\
+      function repeater(){\n\
+      $.getJSON('/status', function(data) {\n\
+      $('#pb').css('width', data.percent + '%');\n\
+      $('#pb').css('background-color', '#' + data.color);\n\
+      $('#state').text(data.state);\n\
+      setTimeout(repeater, " + String(LEDDELAY) + ");\n\
+      }, function(data) {\n\
+      $('#state').text('error');\n\
+      setTimeout(repeater, " + String(LEDDELAY) + ");\n\
+      });\n\
+      }\n\
+      </script>\n\
+      </head>\n");
       //return String("<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0'><style>form{width:80%;margin:0 auto;}label,input{display:inline-block;}label{width:40%;text-align:right;}label+input{width:30%;margin:0 20% 2% 4%;}.l{display:block;text-align:left;margin:0 auto 2% auto;width:60%;}.h{width:10%;margin-right:0px}</style>");
     }
     
@@ -101,21 +116,6 @@ class Webserver {
       content += "</div></body></html>";
       server->send(200, "text/html", content);
     }
-
-    void handleDebug() {
-      String content = "";
-      for (int i = 0; i < dtNBR_ALARMS; i++) {
-        char buffer[80];
-        
-        struct tm * timeinfo;
-        time_t daTime = Alarm.read(i);
-        timeinfo = localtime (&daTime);
-        strftime(buffer, 80, "%I:%M%p", timeinfo);
-        content += String(i) + " - " + String(buffer);
-      }
-
-      server->send(200, "text/plain", content);
-    }
     
     //root page can be accessed only if authentification is ok
     void handleRoot(){
@@ -127,7 +127,6 @@ class Webserver {
         return;
       }
       String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'>";
-      String msg = "";
       bool enabled = true;
       bool moonenabled = false;
       if (server->hasArg("ENABLE")){
@@ -205,22 +204,21 @@ class Webserver {
       char hourbuf[4];
       sprintf(hourbuf, "%02d", hour);
     
-      msg += "<br/>" + _sunrise->GetState();
+      content += "<form action='/' method='POST' data-ajax='false'>\n";
+      content += "<label class='l'><input type='radio' name='ENABLE' value='enabled' " + (enabled ? String("checked") : String("")) + ">Enabled</label>\n";
+      content += "<label class='l'><input type='radio' name='ENABLE' value='disabled' " + (!enabled ? String("checked") : String("")) + ">Disabled</label>\n";
     
-      content += "<form action='/' method='POST' data-ajax='false'>";
-      content += "<label class='l'><input type='radio' name='ENABLE' value='enabled' " + (enabled ? String("checked") : String("")) + ">Enabled</label>";
-      content += "<label class='l'><input type='radio' name='ENABLE' value='disabled' " + (!enabled ? String("checked") : String("")) + ">Disabled</label>";
+      content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>\n";
+      content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>\n";
+      content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>\n";
+      //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>\n";
     
       content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>";
       content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>";
-
-      content += "<label class='l'><input type='radio' name='MOONENABLE' value='enabled' " + (moonenabled ? String("checked") : String("")) + ">Moon Enabled</label>";
-      content += "<label class='l'><input type='radio' name='MOONENABLE' value='disabled' " + (!moonenabled ? String("checked") : String("")) + ">Moon Disabled</label>";
-      
       content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
       //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>";
     
-      content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button><button name='OFF' value='Off'>Off</button>";
+      content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button>";
       content += "<button name='SUBMIT' value='Save'>Save</button></div></form></div><div data-role='footer'><h3>" + msg + "</h3>";
       content += "<div class='pb' style='width:" + String(_sunrise->GetPercent()) + "%;background-color:#" + _sunrise->GetColor() + "'>&nbsp;</div>";
       content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div>" + javascript() + "</body></html>";
@@ -228,7 +226,13 @@ class Webserver {
     }
     
     String javascript() {
-      return "<script>$(document).ready(function() {$('input[type=radio][name=FIXED]').change(function() { if ($('input[name=""FIXED""]:checked').val() == 'fixed') { $('#fixedWrap').show(); } else { $('#fixedWrap').hide(); } } ).change();});</script>";
+      return "<script>$(document).ready(function() {\n\
+      $.ajaxSetup({ cache:false });\n\
+      setTimeout(repeater, " + String(LEDDELAY) + ");\n\
+      $('input[type=radio][name=FIXED]').change(function() \n\
+      { if ($('input[name=""FIXED""]:checked').val() == 'fixed') { $('#fixedWrap').show(); }\n\
+      else \n\
+      { $('#fixedWrap').hide(); } } ).change();});</script>\n";
     }
     
     //no need authentification
