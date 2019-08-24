@@ -23,6 +23,8 @@ class Sunrise {
     String GetColor();
     
     void Update();
+
+    void SetValue(int r, int g, int b);
   protected:
     private:
     int _delay;

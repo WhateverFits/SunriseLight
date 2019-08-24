@@ -49,6 +49,12 @@ void Sunrise::moonset() {
   }
 }
 
+void Sunrise::SetValue(int r, int g, int b) {
+  for (int i = 0; i < numLeds; i++) {
+    strip->setPixelColor(i, r, g, b);
+  }
+}
+
 Sunrise::Sunrise(int Delay, int NumLeds, int pin) {
   _delay = Delay;
   numLeds = NumLeds;

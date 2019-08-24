@@ -158,6 +158,10 @@ class Webserver {
         _sunrise->StartSunset();
       }
     
+      if (server->hasArg("OFF") && server->arg("OFF") == "Off"){
+        _sunrise->SetValue(0, 0, 0);
+      }
+    
       if (!useSunrise)
       {
           EEPROM.get(FIXEDTIMEINDEX, hour);
@@ -186,7 +190,7 @@ class Webserver {
       content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
       //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>";
     
-      content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button>";
+      content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button><button name='OFF' value='Off'>Off</button>";
       content += "<button name='SUBMIT' value='Save'>Save</button></div></form></div><div data-role='footer'><h3>" + msg + "</h3>";
       content += "<div class='pb' style='width:" + String(_sunrise->GetPercent()) + "%;background-color:#" + _sunrise->GetColor() + "'>&nbsp;</div>";
       content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div>" + javascript() + "</body></html>";
