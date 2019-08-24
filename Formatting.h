@@ -1,4 +1,5 @@
-
+#ifndef FORMATTING_H
+#define FORMATTING_H
 //Print an integer in "00" format (with leading zero).
 //Input value assumed to be between 0 and 99.
 void sPrintI00(int val)
@@ -35,3 +36,4 @@ void printTime(time_t t, char *tz)
   Serial.print(tz);
   Serial.println();
 }
+#endif

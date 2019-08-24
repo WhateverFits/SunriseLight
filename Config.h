@@ -5,6 +5,7 @@
 #define AUTHKEYINDEX sizeof(bool)
 #define USESUNRISEINDEX AUTHKEYINDEX + sizeof(int)
 #define FIXEDTIMEINDEX USESUNRISEINDEX + sizeof(bool)
+#define MOONENABLEDINDEX FIXEDTIMEINDEX+ 2 * sizeof(byte)
 #define CLOCKBRIGHT 1
 #define DEBOUNCE 50
 #define REPEATDELAY 1000

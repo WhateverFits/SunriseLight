@@ -1,4 +1,5 @@
 #include <ESP8266WebServer.h>
+#include <time.h>
 #include "Sunrise.h"
 
 class Webserver {
@@ -15,8 +16,9 @@ class Webserver {
         server->on("/inline", [this](){
           server->send(200, "text/plain", "this works without need of authentification");
         });
-      
+        server->on("/debug", [this](){ handleDebug(); });
         server->onNotFound([this](){ handleNotFound(); });
+        
         //here the list of headers to be recorded
         const char * headerkeys[] = {"User-Agent","Cookie"} ;
         size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
@@ -99,6 +101,21 @@ class Webserver {
       content += "</div></body></html>";
       server->send(200, "text/html", content);
     }
+
+    void handleDebug() {
+      String content = "";
+      for (int i = 0; i < dtNBR_ALARMS; i++) {
+        char buffer[80];
+        
+        struct tm * timeinfo;
+        time_t daTime = Alarm.read(i);
+        timeinfo = localtime (&daTime);
+        strftime(buffer, 80, "%I:%M%p", timeinfo);
+        content += String(i) + " - " + String(buffer);
+      }
+
+      server->send(200, "text/plain", content);
+    }
     
     //root page can be accessed only if authentification is ok
     void handleRoot(){
@@ -112,12 +129,21 @@ class Webserver {
       String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'>";
       String msg = "";
       bool enabled = true;
+      bool moonenabled = false;
       if (server->hasArg("ENABLE")){
         enabled = server->arg("ENABLE") == "enabled";
         EEPROM.put(ENABLEDINDEX, enabled);
         EEPROM.commit();
       } else {
         EEPROM.get(ENABLEDINDEX, enabled);
+      }
+    
+      if (server->hasArg("MOONENABLE")){
+        moonenabled = server->arg("MOONENABLE") == "enabled";
+        EEPROM.put(MOONENABLEDINDEX, moonenabled);
+        EEPROM.commit();
+      } else {
+        EEPROM.get(MOONENABLEDINDEX, moonenabled);
       }
     
       bool useSunrise = true;
@@ -187,6 +213,10 @@ class Webserver {
     
       content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>";
       content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>";
+
+      content += "<label class='l'><input type='radio' name='MOONENABLE' value='enabled' " + (moonenabled ? String("checked") : String("")) + ">Moon Enabled</label>";
+      content += "<label class='l'><input type='radio' name='MOONENABLE' value='disabled' " + (!moonenabled ? String("checked") : String("")) + ">Moon Disabled</label>";
+      
       content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
       //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>";
     

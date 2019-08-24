@@ -19,9 +19,9 @@ TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = 
 TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
 Timezone myTZ(myDST, mySTD);
 
-void getSunriseSunsetTimes();
+void setupAlarms();
 Sunrise sunrise = Sunrise(LEDDELAY, LEDS, NEO_PIN);
-Webserver server = Webserver(80, &sunrise, getSunriseSunsetTimes);
+Webserver server = Webserver(80, &sunrise, setupAlarms);
 unsigned long lastButtonTime[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long lastButtonState[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long buttonState[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -60,7 +60,7 @@ bool debounceButton(int pin) {
 TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
 void MorningAlarm() {
   bool enabled;
-  EEPROM.get(0, enabled);
+  EEPROM.get(ENABLEDINDEX, enabled);
   if (enabled) 
   {
     Serial.println("Good morning!");
@@ -73,7 +73,7 @@ void MorningAlarm() {
 
 void EveningAlarm() {
   bool enabled;
-  EEPROM.get(0, enabled);
+  EEPROM.get(ENABLEDINDEX, enabled);
   if (enabled) 
   {
     Serial.println("Good evening!");
@@ -87,8 +87,10 @@ void EveningAlarm() {
 
 void MoonAlarm() {
   bool enabled;
-  EEPROM.get(0, enabled);
-  if (enabled) 
+  bool moonenabled;
+  EEPROM.get(ENABLEDINDEX, enabled);
+  EEPROM.get(MOONENABLEDINDEX, moonenabled);
+  if (enabled && moonenabled) 
   {
     Serial.println("Watch out for wherewolves!");
     time_t utc = now();
@@ -100,8 +102,10 @@ void MoonAlarm() {
 
 void MoonSetAlarm() {
   bool enabled;
-  EEPROM.get(0, enabled);
-  if (enabled) 
+  bool moonenabled;
+  EEPROM.get(ENABLEDINDEX, enabled);
+  EEPROM.get(MOONENABLEDINDEX, moonenabled);
+  if (enabled && moonenabled) 
   {
     Serial.println("Whew!");
     time_t utc = now();
@@ -123,7 +127,7 @@ int createAlarmUTC(int h, int m, OnTick_t onTickHandler) {
   t.Year = 2018 - 1970;
   
   time_t utc = makeTime(t);
-  return Alarm.alarmRepeat(hour(utc), m, 0, onTickHandler);
+  return Alarm.alarmOnce(hour(utc), m, 0, onTickHandler);
 }
 
 int createAlarm(int h, int m, OnTick_t onTickHandler) {
@@ -132,7 +136,6 @@ int createAlarm(int h, int m, OnTick_t onTickHandler) {
   t.Minute = m;
   t.Hour = h;
   time_t holding = now();
-  // Unused
   t.Day = day(holding);
   t.Month = month(holding);
   t.Year = year(holding) - 1970;
@@ -143,12 +146,12 @@ int createAlarm(int h, int m, OnTick_t onTickHandler) {
   Serial.print(hour(utc));
   Serial.print(":");
   Serial.println(m);
-  return Alarm.alarmRepeat(hour(utc), m, 0, onTickHandler);
+  return Alarm.alarmOnce(hour(utc), m, 0, onTickHandler);
 }
 
 void setupAlarms() {
   if (!alarmsSet) {
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < dtNBR_ALARMS; i++) {
       Alarm.free(i);
     }
 
@@ -229,6 +232,7 @@ void getSunriseSunsetTimes() {
         {
           Serial.print("Dude, sleep in! Today is ");
           Serial.println(dayShortStr(today));
+          Alarm.free(morningIndex);
         }
       }
       eveningIndex = createAlarmUTC(sunsetHour.toInt(), sunsetMin.toInt(), EveningAlarm);
