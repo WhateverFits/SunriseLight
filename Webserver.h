@@ -116,6 +116,16 @@ class Webserver {
       content += "</div></body></html>";
       server->send(200, "text/html", content);
     }
+
+    void handleStatus() {
+      if (is_authenticated()){
+        server->sendHeader("Cache-Control", "no-cache");
+        String content = "{ \"percent\": " + String(_sunrise->GetPercent()) + ", \"color\": \"" + _sunrise->GetColor() + "\", \"state\": \"" + _sunrise->GetState() + "\" }";
+        server->send(200, "application/json", content);
+      } else {
+        server->send(401, "text/plain", "Not authorized.");
+      }
+    }
     
     //root page can be accessed only if authentification is ok
     void handleRoot(){
@@ -211,17 +221,12 @@ class Webserver {
       content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>\n";
       content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>\n";
       content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>\n";
-      //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>\n";
-    
-      content += "<label class='l'><input type='radio' name='FIXED' value='sunrise' " + (useSunrise ? String("checked") : String("")) + ">Use Sunrise Time</label>";
-      content += "<label class='l'><input type='radio' name='FIXED' value='fixed' " + (!useSunrise ? String("checked") : String("")) + ">Use Fixed Time</label>";
-      content += "<div id='fixedWrap'><label>Fixed time: </label><input type='time' data-clear-btn='true' name='TIME' id='time' value='" + (hour < 24 ? String(hourbuf) + ":" : String("") ) + (minute < 60 ? String(minbuf) : String("") ) + "'></div>";
-      //content += "<label>Fixed time:</label><input type='text' name='HOUR' placeholder='hour' class='h' value='" + (hour < 24 ? String(hour) : String("") ) + "'><input type='text' name='MINUTE' placeholder='min' class='h' value='" + (minute < 60 ? String(buffer) : String("") ) + "'>";
-    
-      content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button>";
-      content += "<button name='SUBMIT' value='Save'>Save</button></div></form></div><div data-role='footer'><h3>" + msg + "</h3>";
-      content += "<div class='pb' style='width:" + String(_sunrise->GetPercent()) + "%;background-color:#" + _sunrise->GetColor() + "'>&nbsp;</div>";
-      content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div>" + javascript() + "</body></html>";
+
+      content += "<div><button name='SUNRISE' value='Sunrise'>Sunrise</button><button name='SUNSET' value='Sunset'>Sunset</button>\n";
+      content += "<button name='SUBMIT' value='Save'>Save</button></div></form></div><div data-role='footer'><h3 id='state'>" + _sunrise->GetState() + "</h3>\n";
+      content += "<div class='pb' id='pb' style='width:" + String(_sunrise->GetPercent()) + "%;background-color:#" + _sunrise->GetColor() + "'>&nbsp;</div>\n";
+      content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div>" + javascript() + "</body></html>\n";
+      server->sendHeader("Cache-Control", "no-cache");
       server->send(200, "text/html", content);
     }
     
