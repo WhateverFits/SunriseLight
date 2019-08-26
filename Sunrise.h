@@ -24,7 +24,14 @@ class Sunrise {
     
     void Update();
 
+    void On();
+
+    void Off();
+
     void SetValue(int r, int g, int b);
+    
+    unsigned long GetValue();
+    
   protected:
     private:
     int _delay;

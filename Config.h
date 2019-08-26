@@ -16,6 +16,7 @@
 #define BUTTON_PIN D2
 #define CLOCK_DIO D3
 #define CLOCK_CLK D4
+#define WEBCOLORCOMPRESS 100
 
 
 IPAddress timeServer(192, 168, 42, 1);

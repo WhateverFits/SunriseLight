@@ -50,9 +50,31 @@ void Sunrise::moonset() {
 }
 
 void Sunrise::SetValue(int r, int g, int b) {
+  R = r;
+  G = g;
+  B = b;
+
   for (int i = 0; i < numLeds; i++) {
     strip->setPixelColor(i, r, g, b);
   }
+}
+
+unsigned long Sunrise::GetValue() {
+  return R << 16 | G << 8 | B;
+}
+
+void Sunrise::Off() {
+  SetValue(0, 0, 0);
+  showSunrise = false;
+  showSunset = false;
+  showMoon = false;  
+}
+
+void Sunrise::On() {
+  SetValue(255, 255, 255);
+  showSunrise = true;
+  showSunset = false;
+  showMoon = false;  
 }
 
 Sunrise::Sunrise(int Delay, int NumLeds, int pin) {
