@@ -1,0 +1,2 @@
+#!/bin/bash
+/home/sean/Downloads/arduino-1.8.9/arduino --verify SunriseLight.ino

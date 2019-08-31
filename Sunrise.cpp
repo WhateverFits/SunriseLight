@@ -9,7 +9,10 @@ void Sunrise::sunrise() {
   if (R > 100 && B < 255)
     B++;
   for (int i = 0; i < numLeds; i++) {
-    strip->setPixelColor(i, R, G, B);   
+	if (R < numLeds && i >= R)
+    	strip->setPixelColor(i, 0, 0, 0);
+	else
+    	strip->setPixelColor(i, R, G, B);
   }
 }
 
@@ -20,8 +23,12 @@ void Sunrise::sunset() {
     G--;
   if (B > 0)
     B--;
-  for (int i = 0; i < numLeds; i++) {
+  for (int i = numLeds - 1; i >= 0; i--) {
     strip->setPixelColor(i, R, G, B);  
+	if (R < numLeds && i >= R)
+    	strip->setPixelColor(i, 0, 0, 0);
+	else
+    	strip->setPixelColor(i, R, G, B);
   }   
 }
 
@@ -33,7 +40,10 @@ void Sunrise::moonrise() {
   if (B > 20 && R < 80)
     R++;
   for (int i = 0; i < numLeds; i++) {
-    strip->setPixelColor(i, R, G, B);   
+	if (B < numLeds && i >= B)
+    	strip->setPixelColor(i, 0, 0, 0);
+	else
+    	strip->setPixelColor(i, R, G, B);
   }
 }
 
@@ -44,8 +54,11 @@ void Sunrise::moonset() {
     G--;
   if (R > 0)
     R--;
-  for (int i = 0; i < numLeds; i++) {
-    strip->setPixelColor(i, R, G, B);
+  for (int i = numLeds - 1; i >= 0; i--) {
+	if (B < numLeds && i >= B)
+    	strip->setPixelColor(i, 0, 0, 0);
+	else
+    	strip->setPixelColor(i, R, G, B);
   }
 }
 
@@ -57,6 +70,8 @@ void Sunrise::SetValue(int r, int g, int b) {
   for (int i = 0; i < numLeds; i++) {
     strip->setPixelColor(i, r, g, b);
   }
+
+  strip->show();
 }
 
 unsigned long Sunrise::GetValue() {

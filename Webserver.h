@@ -44,6 +44,7 @@ class Webserver {
 
   private:
     int _delay;
+    unsigned int authkey = -1;
     ESP8266WebServer *server = NULL;
     Sunrise *_sunrise = NULL;
     THandlerFunction _recalculate;
@@ -51,8 +52,10 @@ class Webserver {
 
     //Check if header is present and correct
     bool is_authenticated() {
-      unsigned int authkey = -1;
-      EEPROM.get(AUTHKEYINDEX, authkey);
+      if (authkey == -1) {
+        EEPROM.get(AUTHKEYINDEX, authkey);
+      }
+      
       if (server->hasHeader("Cookie")) {
         String cookie = server->header("Cookie");
         //Serial.print("Found authkey: ");
@@ -108,9 +111,11 @@ class Webserver {
       }
       if (server->hasArg("USERNAME") && server->hasArg("PASSWORD")) {
         if (server->arg("USERNAME") == "admin" &&  server->arg("PASSWORD") == "admin" ) {
-          unsigned int authkey = random(65535);
-          EEPROM.put(AUTHKEYINDEX, authkey);
-          EEPROM.commit();
+          if (authkey == -1) {
+            authkey = random(65535);
+            EEPROM.put(AUTHKEYINDEX, authkey);
+            EEPROM.commit();
+          }
           String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=" + String(authkey) + "\r\nLocation: /\r\nCache-Control: no-cache\r\n\r\n";
           server->sendContent(header);
           Serial.println("Log in Successful");

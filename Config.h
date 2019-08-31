@@ -14,8 +14,8 @@
 #define LOCALUDPPORT 8888
 #define NEO_PIN D6
 #define BUTTON_PIN D2
-#define CLOCK_DIO D3
-#define CLOCK_CLK D4
+#define CLOCK_DIO D1
+#define CLOCK_CLK D3
 #define WEBCOLORCOMPRESS 100
 
 
