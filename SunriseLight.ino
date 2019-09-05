@@ -30,9 +30,10 @@ long lastTime = 0;
 long lastTimeClock = 0;
 time_t utc, local;
 
-bool alarmsSet = false;
 int morningIndex = -1;
 int eveningIndex = -1;
+int moonIndex = -1;
+int moonSetIndex = -1;
 
 bool debounceButton(int pin) {
   bool result = false;
@@ -81,7 +82,6 @@ void EveningAlarm() {
     time_t local = myTZ.toLocal(utc, &tcr);
     printTime(local, tcr -> abbrev);
     sunrise.StartSunset();
-    alarmsSet = false;
   }
 }
 
@@ -150,16 +150,13 @@ int createAlarm(int h, int m, OnTick_t onTickHandler) {
 }
 
 void setupAlarms() {
-  if (!alarmsSet) {
-    for (int i = 0; i < dtNBR_ALARMS; i++) {
-      Alarm.free(i);
-    }
-
-    getSunriseSunsetTimes();
-    createAlarm(21, 0, MoonAlarm);
-    createAlarm(22, 30, MoonSetAlarm);
-    alarmsSet = true;
+  for (int i = 0; i < dtNBR_ALARMS; i++) {
+    Alarm.free(i);
   }
+
+  getSunriseSunsetTimes();
+  moonIndex = createAlarm(21, 0, MoonAlarm);
+  moonSetIndex = createAlarm(22, 30, MoonSetAlarm);
 }
 
 void getSunriseSunsetTimes() {
@@ -204,10 +201,8 @@ void getSunriseSunsetTimes() {
       String sunsetMin = sunset.substring(sunset.indexOf(':') + 1, sunset.indexOf(':') + 3);
       Serial.print("Sunrise UTC: ");
       Serial.println(sunriseHour + ":" + sunriseMin);
-      if (morningIndex > -1)
-        Alarm.free(morningIndex);
-      if (eveningIndex > -1)
-        Alarm.free(eveningIndex);
+      Alarm.free(morningIndex);
+      Alarm.free(eveningIndex);
       bool useSunrise;
       byte hour;
       byte minute;
@@ -223,6 +218,7 @@ void getSunriseSunsetTimes() {
       else
       {
         int today = weekday(local);
+	Alarm.free(morningIndex);
         if (today != 1 && today != 7)
         {
           morningIndex = createAlarm(hour, minute, MorningAlarm);
@@ -232,9 +228,9 @@ void getSunriseSunsetTimes() {
         {
           Serial.print("Dude, sleep in! Today is ");
           Serial.println(dayShortStr(today));
-          Alarm.free(morningIndex);
         }
       }
+
       eveningIndex = createAlarmUTC(sunsetHour.toInt(), sunsetMin.toInt(), EveningAlarm);
       break;
     }
