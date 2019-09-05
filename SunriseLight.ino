@@ -7,6 +7,7 @@
 #include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <TM1637.h>
+#include <EasyButton.h>
 #include "Config.h"
 #include "Sunrise.h"
 #include "NTP.h"
@@ -14,7 +15,7 @@
 #include "Webserver.h"
 
 TM1637 tm1637(CLOCK_DIO, CLOCK_CLK);
-
+EasyButton button(BUTTON_PIN);
 TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
 TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
 Timezone myTZ(myDST, mySTD);
@@ -22,9 +23,6 @@ Timezone myTZ(myDST, mySTD);
 void setupAlarms();
 Sunrise sunrise = Sunrise(LEDDELAY, LEDS, NEO_PIN);
 Webserver server = Webserver(80, &sunrise, setupAlarms);
-unsigned long lastButtonTime[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long lastButtonState[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long buttonState[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 long lastTime = 0;
 long lastTimeClock = 0;
@@ -34,29 +32,6 @@ int morningIndex = -1;
 int eveningIndex = -1;
 int moonIndex = -1;
 int moonSetIndex = -1;
-
-bool debounceButton(int pin) {
-  bool result = false;
-  unsigned long now = millis();
-  int reading = digitalRead(pin);
-  if (reading != buttonState[pin])
-    lastButtonTime[pin] = now;
-
-  if (abs(now - lastButtonTime[pin]) > DEBOUNCE) {
-    if (reading != buttonState[pin])
-      buttonState[pin] = reading;
-    if (buttonState[pin] == LOW) {
-      if (now - lastButtonState[pin] > REPEATDELAY) {
-        Serial.print("Button: ");
-        Serial.println(pin);
-        result = true;
-        lastButtonState[pin] = now;
-      }
-    }
-  }
-
-  return result;
-}
 
 TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
 void MorningAlarm() {
@@ -240,6 +215,29 @@ void getSunriseSunsetTimes() {
   Serial.println("closing connection");
 }
 
+void onPressed() {
+	String state = sunrise.GetState();
+	if (state == "Off") {
+		Serial.println("Sunrise");
+		sunrise.StartSunrise();
+	} else if (state == "Sunrise") {
+		Serial.println("Sunset");
+		sunrise.StartSunset();
+	} else if (state == "Sunset") {
+		Serial.println("Moonrise");
+		sunrise.StartMoonrise();
+	} else {
+		Serial.println("Moonset");
+		sunrise.StartMoonset();
+	}
+}
+
+void onPressedForDuration() {
+		Serial.println("Kill it");
+		sunrise.StartSunset();
+		sunrise.Off();
+}
+
 void setup() {
   //Serial.begin(74880);
   Serial.begin(115200);
@@ -253,7 +251,7 @@ void setup() {
   tm1637.dispNumber(0);
 
   // Set up button
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  //pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   // Connect to a WiFi network
   Serial.println("Scanning networks");
@@ -334,30 +332,18 @@ void setup() {
   EEPROM.begin(10);
   server.Initialize();
   tm1637.dispNumber(7777);
+
+  button.begin();
+  // Add the callback function to be called when the button is pressed.
+  button.onPressed(onPressed);
+  button.onPressedFor(1000, onPressedForDuration);
 }
 
 void loop() {
   Alarm.delay(0);
   sunrise.Update();
-
-  if (debounceButton(BUTTON_PIN)) {
+	button.read();
     
-    String state = sunrise.GetState();
-    if (state == "Off") {
-      Serial.println("Sunrise");
-      sunrise.StartSunrise();
-    } else if (state == "Sunrise") {
-      Serial.println("Sunset");
-      sunrise.StartSunset();
-    } else if (state == "Sunset") {
-      Serial.println("Moonrise");
-      sunrise.StartMoonrise();
-    } else {
-      Serial.println("Moonset");
-      sunrise.StartMoonset();
-    }
-  }
-
   long milliseconds = millis();
   utc = now();
   local = myTZ.toLocal(utc, &tcr);
