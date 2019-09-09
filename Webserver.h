@@ -167,7 +167,7 @@ class Webserver {
         struct tm * timeinfo;
         time_t daTime = Alarm.read(i);
         timeinfo = localtime (&daTime);
-        strftime(buffer, 80, "%I:%M%p", timeinfo);
+        strftime(buffer, 80, "%I:%M%p\n", timeinfo);
         content += String(i) + " - " + String(buffer);
       }
 
