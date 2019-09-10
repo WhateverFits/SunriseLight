@@ -21,7 +21,7 @@ TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = 
 Timezone myTZ(myDST, mySTD);
 
 void setupAlarms();
-Sunrise sunrise = Sunrise(LEDDELAY, LEDS, NEO_PIN);
+Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN);
 Webserver server = Webserver(80, &sunrise, setupAlarms);
 
 long lastTime = 0;

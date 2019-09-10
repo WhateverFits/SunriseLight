@@ -4,7 +4,7 @@
 
 class Sunrise {
   public: 
-    Sunrise(int Delay, int NumLeds, int pin);
+    Sunrise(int Delay, int FastDelay, int NumLeds, int pin);
 
     void StartSunrise();
     
@@ -28,6 +28,8 @@ class Sunrise {
 
     void Off();
 
+    void FastToggle();
+
     void SetValue(int r, int g, int b);
     
     unsigned long GetValue();
@@ -35,6 +37,8 @@ class Sunrise {
   protected:
     private:
     int _delay;
+    int _fastDelay;
+    int workingDelay;
     int numLeds;
     long startTime;
     byte R = 0;

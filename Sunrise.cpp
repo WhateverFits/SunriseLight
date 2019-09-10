@@ -92,8 +92,19 @@ void Sunrise::On() {
   showMoon = false;  
 }
 
-Sunrise::Sunrise(int Delay, int NumLeds, int pin) {
+void Sunrise::FastToggle() {
+	if (showSunrise) {
+		StartSunset();
+	} else {
+		StartSunrise();
+	}
+
+	workingDelay = _fastDelay;
+}
+
+Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin) {
   _delay = Delay;
+  _fastDelay = FastDelay;
   numLeds = NumLeds;
   strip = new Adafruit_NeoPixel(NumLeds, pin, NEO_GRB + NEO_KHZ800);
   strip->begin();
@@ -105,6 +116,7 @@ void Sunrise::StartSunrise() {
   showSunset = false;
   showMoon = false;
   startTime = millis();
+	workingDelay = _delay;
 }
 
 void Sunrise::StartSunset() {
@@ -112,6 +124,7 @@ void Sunrise::StartSunset() {
   showSunset = true;
   showMoon = false;
   startTime = millis();
+	workingDelay = _delay;
 }
 
 void Sunrise::StartMoonrise() {
@@ -119,6 +132,7 @@ void Sunrise::StartMoonrise() {
   showSunset = false;
   showMoon = true;
   startTime = millis();
+	workingDelay = _delay;
 }
 
 void Sunrise::StartMoonset() {
@@ -126,6 +140,7 @@ void Sunrise::StartMoonset() {
   showSunset = false;
   showMoon = false;
   startTime = millis();
+	workingDelay = _delay;
 }
 
 void Sunrise::SetPixel(int pixel, byte r, byte g, byte b) {
@@ -155,7 +170,7 @@ String Sunrise::GetColor() {
 
 void Sunrise::Update() {
     unsigned long current = millis();
-    if (current - startTime > _delay) {
+    if (current - startTime > workingDelay || current < startTime) {
       if (showSunrise)
         sunrise();
       else if (showSunset)
