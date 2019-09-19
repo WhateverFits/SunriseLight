@@ -3,62 +3,79 @@
 
 void Sunrise::sunrise() {
   if (R < 255)
-    R++;
+	R++;
   if (R > 20 && G < 255)
-    G++;
+	G++;
   if (R > 100 && B < 255)
-    B++;
+	B++;
   for (int i = 0; i < numLeds; i++) {
 	if (R < numLeds && i >= R)
-    	strip->setPixelColor(i, 0, 0, 0);
+	  strip->setPixelColor(i, 0, 0, 0);
 	else
-    	strip->setPixelColor(i, R, G, B);
+	  strip->setPixelColor(i, R, G, B);
+  }
+
+  if (R < 255 ) {
+	Serial.print("sunrise ");
+	Serial.println(GetColor());
   }
 }
 
 void Sunrise::sunset() {
   if (R > 0 && G < 155)
-    R--;
+	R--;
   if (G > 0 && B < 235)
-    G--;
+	G--;
   if (B > 0)
-    B--;
+	B--;
   for (int i = numLeds - 1; i >= 0; i--) {
-    strip->setPixelColor(i, R, G, B);  
 	if (R < numLeds && i >= R)
-    	strip->setPixelColor(i, 0, 0, 0);
+	  strip->setPixelColor(i, 0, 0, 0);
 	else
-    	strip->setPixelColor(i, R, G, B);
+	  strip->setPixelColor(i, R, G, B);
   }   
+
+  if (R > 0) {
+	Serial.print("sunset ");
+	Serial.println(GetColor());
+  }
 }
 
 void Sunrise::moonrise() {
   if (B < 255)
-    B++;
+	B++;
   if (B > 20 && G < 80)
-    G++;
+	G++;
   if (B > 20 && R < 80)
-    R++;
+	R++;
   for (int i = 0; i < numLeds; i++) {
 	if (B < numLeds && i >= B)
-    	strip->setPixelColor(i, 0, 0, 0);
+	  strip->setPixelColor(i, 0, 0, 0);
 	else
-    	strip->setPixelColor(i, R, G, B);
+	  strip->setPixelColor(i, R, G, B);
   }
+
+  Serial.print("moonrise ");
+  Serial.println(GetColor());
 }
 
 void Sunrise::moonset() {
   if (B > 0 && G < 80)
-    B--;
+	B--;
   if (G > 0)
-    G--;
+	G--;
   if (R > 0)
-    R--;
+	R--;
   for (int i = numLeds - 1; i >= 0; i--) {
 	if (B < numLeds && i >= B)
-    	strip->setPixelColor(i, 0, 0, 0);
+	  strip->setPixelColor(i, 0, 0, 0);
 	else
-    	strip->setPixelColor(i, R, G, B);
+	  strip->setPixelColor(i, R, G, B);
+  }
+
+  if (R > 0) {
+	Serial.print("moonset ");
+	Serial.println(GetColor());
   }
 }
 
@@ -93,18 +110,19 @@ void Sunrise::On() {
 }
 
 void Sunrise::FastToggle() {
-	if (showSunrise) {
-		StartSunset();
-	} else {
-		StartSunrise();
-	}
+  if (showSunrise) {
+	StartSunset();
+  } else {
+	StartSunrise();
+  }
 
-	workingDelay = _fastDelay;
+  workingDelay = _fastDelay;
 }
 
 Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin) {
   _delay = Delay;
   _fastDelay = FastDelay;
+	workingDelay = Delay;
   numLeds = NumLeds;
   strip = new Adafruit_NeoPixel(NumLeds, pin, NEO_GRB + NEO_KHZ800);
   strip->begin();
@@ -116,7 +134,7 @@ void Sunrise::StartSunrise() {
   showSunset = false;
   showMoon = false;
   startTime = millis();
-	workingDelay = _delay;
+  workingDelay = _delay;
 }
 
 void Sunrise::StartSunset() {
@@ -124,7 +142,7 @@ void Sunrise::StartSunset() {
   showSunset = true;
   showMoon = false;
   startTime = millis();
-	workingDelay = _delay;
+  workingDelay = _delay;
 }
 
 void Sunrise::StartMoonrise() {
@@ -132,7 +150,7 @@ void Sunrise::StartMoonrise() {
   showSunset = false;
   showMoon = true;
   startTime = millis();
-	workingDelay = _delay;
+  workingDelay = _delay;
 }
 
 void Sunrise::StartMoonset() {
@@ -140,7 +158,7 @@ void Sunrise::StartMoonset() {
   showSunset = false;
   showMoon = false;
   startTime = millis();
-	workingDelay = _delay;
+  workingDelay = _delay;
 }
 
 void Sunrise::SetPixel(int pixel, byte r, byte g, byte b) {
@@ -169,17 +187,17 @@ String Sunrise::GetColor() {
 }
 
 void Sunrise::Update() {
-    unsigned long current = millis();
-    if (current - startTime > workingDelay || current < startTime) {
-      if (showSunrise)
-        sunrise();
-      else if (showSunset)
-        sunset();
-      else if (showMoon)
-        moonrise();
-      else
-        moonset();
-      strip->show();
-      startTime = current;
-    }
+  unsigned long current = millis();
+  if (current - startTime > workingDelay || current < startTime) {
+	if (showSunrise)
+	  sunrise();
+	else if (showSunset)
+	  sunset();
+	else if (showMoon)
+	  moonrise();
+	else
+	  moonset();
+	strip->show();
+	startTime = current;
+  }
 }

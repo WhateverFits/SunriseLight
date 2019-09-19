@@ -10,8 +10,8 @@
 #define DEBOUNCE 50
 #define REPEATDELAY 1000
 #define LEDDELAY 4000
-#define FASTDELAY 50
-#define LEDS 60
+#define FASTDELAY 10
+#define LEDS 40
 #define LOCALUDPPORT 8888
 #define NEO_PIN D6
 #define BUTTON_PIN D2

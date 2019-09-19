@@ -27,15 +27,24 @@ void sendNTPpacket(IPAddress &address)
   Udp.endPacket();
 }
 
+String IpAddress2String(const IPAddress& ipAddress)
+{
+  return String(ipAddress[0]) + String(".") +\
+  String(ipAddress[1]) + String(".") +\
+  String(ipAddress[2]) + String(".") +\
+  String(ipAddress[3])  ;
+}
+
 int ntpRetryCount = 3;
 int ntpRetry = 0;
 time_t getNtpTime()
 {
   while (Udp.parsePacket() > 0) ; // discard any previously received packets
-  Serial.println("Transmit NTP Request");
   // Fall back to using the global NTP pool server in case we cannot connect to internal NTP server
   if (ntpRetry > 1)
     WiFi.hostByName(ntpServerName, timeServer);
+  Serial.print("Transmit NTP Request to ");
+  Serial.println(IpAddress2String(timeServer));
   sendNTPpacket(timeServer);
   uint32_t beginWait = millis();
   while (millis() - beginWait < 1500) {

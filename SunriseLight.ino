@@ -233,9 +233,8 @@ void onPressed() {
 }
 
 void onPressedForDuration() {
-		Serial.println("Kill it");
-		sunrise.StartSunset();
-		sunrise.Off();
+	Serial.println("Kill it");
+	sunrise.FastToggle();
 }
 
 void setup() {
