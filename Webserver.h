@@ -106,6 +106,7 @@ class Webserver {
       if (server->hasArg("DISCONNECT")) {
         Serial.println("Disconnection");
         String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=0\r\nLocation: /login\r\nCache-Control: no-cache\r\n\r\n";
+        authkey = -1;
         server->sendContent(header);
         return;
       }
@@ -116,7 +117,7 @@ class Webserver {
             EEPROM.put(AUTHKEYINDEX, authkey);
             EEPROM.commit();
           }
-          String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=" + String(authkey) + "\r\nLocation: /\r\nCache-Control: no-cache\r\n\r\n";
+          String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=" + String(authkey) + ";Max-Age=604800\r\nLocation: /\r\nCache-Control: no-cache\r\n\r\n";
           server->sendContent(header);
           Serial.println("Log in Successful");
           return;
@@ -151,7 +152,9 @@ class Webserver {
 
     void handleStatus() {
       if (is_authenticated()) {
-        server->sendHeader("Cache-Control", "no-cache");
+        server->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        server->sendHeader("Pragma", "no-cache");
+        server->sendHeader("Expires", "0");
         String content = "{ \"percent\": " + String(_sunrise->GetPercent()) + ", \"color\": \"" + GetCompressedColor() + "\", \"state\": \"" + _sunrise->GetState() + "\" }";
         server->send(200, "application/json", content);
       } else {

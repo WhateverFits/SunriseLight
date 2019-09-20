@@ -59,6 +59,8 @@ time_t getNtpTime()
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
       randomSeed(secsSince1900);
+      // Make sure we chill a little
+      setSyncInterval(300);
       return secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
     }
   }
@@ -68,5 +70,8 @@ time_t getNtpTime()
     ntpRetry++;
     return getNtpTime();
   }
+
+  // We couldn't connect so we are gonna try harder!
+  setSyncInterval(5);
   return 0; // return 0 if unable to get the time
 }
