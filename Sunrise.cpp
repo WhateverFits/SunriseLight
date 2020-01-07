@@ -1,13 +1,20 @@
 #include <Adafruit_NeoPixel.h>
+#include <Time.h>
 #include "Sunrise.h"
 
 void Sunrise::sunrise() {
-  if (R < 255)
+  if (R < 255) {
 	R++;
-  if (R > 20 && G < 255)
-	G++;
-  if (R > 100 && B < 255)
+	  stateChanged = true;
+	}
+	if (R > 20 && G < 255) {
+	  G++;
+	  stateChanged = true;
+  }
+  if (R > 100 && B < 255) {
 	B++;
+	stateChanged = true;
+  }
   for (int i = 0; i < numLeds; i++) {
 	if (R < numLeds && i >= R)
 	  strip->setPixelColor(i, 0, 0, 0);
@@ -15,19 +22,28 @@ void Sunrise::sunrise() {
 	  strip->setPixelColor(i, R, G, B);
   }
 
-  if (R < 255 ) {
+  if (stateChanged) {
 	Serial.print("sunrise ");
 	Serial.println(GetColor());
+	if (_stateChange && R == 255 && G == 255 && B == 255) {
+	  _stateChange(GetState());
+	}
   }
 }
 
 void Sunrise::sunset() {
-  if (R > 0 && G < 155)
+  if (R > 0 && G < 155) {
 	R--;
-  if (G > 0 && B < 235)
+	stateChanged = true;
+  }
+  if (G > 0 && B < 235) {
 	G--;
-  if (B > 0)
+	stateChanged = true;
+  }
+  if (B > 0) {
 	B--;
+	stateChanged = true;
+  }
   for (int i = numLeds - 1; i >= 0; i--) {
 	if (R < numLeds && i >= R)
 	  strip->setPixelColor(i, 0, 0, 0);
@@ -35,19 +51,28 @@ void Sunrise::sunset() {
 	  strip->setPixelColor(i, R, G, B);
   }   
 
-  if (R > 0) {
+  if (stateChanged) {
 	Serial.print("sunset ");
 	Serial.println(GetColor());
+	if (_stateChange && R == 0 && G == 0 && B == 0) {
+	  _stateChange(GetState());
+	}
   }
 }
 
 void Sunrise::moonrise() {
-  if (B < 255)
+  if (B < 255) {
 	B++;
-  if (B > 20 && G < 80)
+	stateChanged = true;
+  }
+  if (B > 20 && G < 80) {
 	G++;
-  if (B > 20 && R < 80)
+	stateChanged = true;
+  }
+  if (B > 20 && R < 80) {
 	R++;
+	stateChanged = true;
+  }
   for (int i = 0; i < numLeds; i++) {
 	if (B < numLeds && i >= B)
 	  strip->setPixelColor(i, 0, 0, 0);
@@ -55,17 +80,28 @@ void Sunrise::moonrise() {
 	  strip->setPixelColor(i, R, G, B);
   }
 
-  Serial.print("moonrise ");
-  Serial.println(GetColor());
+  if (stateChanged) {
+	Serial.print("moonrise ");
+	Serial.println(GetColor());
+	if (_stateChange && R == 80 && G == 80 && B == 255) {
+	  _stateChange(GetState());
+	}
+  }
 }
 
 void Sunrise::moonset() {
-  if (B > 0 && G < 80)
+  if (B > 0 && G < 80) {
 	B--;
-  if (G > 0)
+	stateChanged = true;
+  }
+  if (G > 0) {
 	G--;
-  if (R > 0)
+	stateChanged = true;
+  }
+  if (R > 0) {
 	R--;
+	stateChanged = true;
+  }
   for (int i = numLeds - 1; i >= 0; i--) {
 	if (B < numLeds && i >= B)
 	  strip->setPixelColor(i, 0, 0, 0);
@@ -73,13 +109,20 @@ void Sunrise::moonset() {
 	  strip->setPixelColor(i, R, G, B);
   }
 
-  if (R > 0) {
+  if (stateChanged) {
 	Serial.print("moonset ");
 	Serial.println(GetColor());
+	if (_stateChange && R == 0 && G == 0 && B == 0) {
+	  _stateChange(GetState());
+	}
   }
 }
 
 void Sunrise::SetValue(int r, int g, int b) {
+  if (R != r || G != g || B != b) {
+	stateChanged = true;
+  }
+
   R = r;
   G = g;
   B = b;
@@ -100,6 +143,10 @@ void Sunrise::Off() {
   showSunrise = false;
   showSunset = false;
   showMoon = false;  
+  if (_stateChange) {
+	_stateChange("Off");
+  }
+  stateChanged = true;
 }
 
 void Sunrise::On() {
@@ -107,6 +154,10 @@ void Sunrise::On() {
   showSunrise = true;
   showSunset = false;
   showMoon = false;  
+  if (_stateChange) {
+	_stateChange("Sunrise");
+  }
+  stateChanged = true;
 }
 
 void Sunrise::FastToggle() {
@@ -119,10 +170,11 @@ void Sunrise::FastToggle() {
   workingDelay = _fastDelay;
 }
 
-Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin) {
+Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin, THandlerFunction stateChange) {
   _delay = Delay;
   _fastDelay = FastDelay;
-	workingDelay = Delay;
+  _stateChange = stateChange;
+  workingDelay = Delay;
   numLeds = NumLeds;
   strip = new Adafruit_NeoPixel(NumLeds, pin, NEO_GRB + NEO_KHZ800);
   strip->begin();
@@ -135,6 +187,9 @@ void Sunrise::StartSunrise() {
   showMoon = false;
   startTime = millis();
   workingDelay = _delay;
+  if (_stateChange) {
+	_stateChange("Sunrise");
+  }
 }
 
 void Sunrise::StartSunset() {
@@ -143,6 +198,9 @@ void Sunrise::StartSunset() {
   showMoon = false;
   startTime = millis();
   workingDelay = _delay;
+  if (_stateChange) {
+	_stateChange("Sunset");
+  }
 }
 
 void Sunrise::StartMoonrise() {
@@ -151,6 +209,9 @@ void Sunrise::StartMoonrise() {
   showMoon = true;
   startTime = millis();
   workingDelay = _delay;
+  if (_stateChange) {
+	_stateChange("Moonrise");
+  }
 }
 
 void Sunrise::StartMoonset() {
@@ -159,13 +220,16 @@ void Sunrise::StartMoonset() {
   showMoon = false;
   startTime = millis();
   workingDelay = _delay;
+  if (_stateChange) {
+	_stateChange("Moonset");
+  }
 }
 
 void Sunrise::SetPixel(int pixel, byte r, byte g, byte b) {
   strip->setPixelColor(pixel, r, g, b);
 }
 
-String Sunrise::GetState() {
+const char * Sunrise::GetState() {
   if (showSunrise)
     return "Sunrise";
   else if (showSunset)
@@ -199,5 +263,11 @@ void Sunrise::Update() {
 	  moonset();
 	strip->show();
 	startTime = current;
+	if (_stateChange && stateChanged && (current >= lastUpdateTime + 1000 || current < lastUpdateTime)) {
+	  _stateChange(GetState());
+	  lastUpdateTime = current;
+	}
+
+	stateChanged = false;
   }
 }

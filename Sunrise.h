@@ -4,7 +4,8 @@
 
 class Sunrise {
   public: 
-    Sunrise(int Delay, int FastDelay, int NumLeds, int pin);
+    typedef std::function<void(const char*)> THandlerFunction;
+    Sunrise(int Delay, int FastDelay, int NumLeds, int pin, THandlerFunction stateChange);
 
     void StartSunrise();
     
@@ -16,7 +17,7 @@ class Sunrise {
 
     void SetPixel(int pixel, byte r, byte g, byte b);
 
-    String GetState();
+    const char * GetState();
 
     float GetPercent();
 
@@ -41,13 +42,16 @@ class Sunrise {
     int workingDelay;
     int numLeds;
     long startTime;
+	long lastUpdateTime = 0;
     byte R = 0;
     byte G = 0;
     byte B = 0; 
+	THandlerFunction _stateChange;
 
     bool showSunrise = false;
     bool showSunset = false;
     bool showMoon = false;
+	bool stateChanged = false;
 
     Adafruit_NeoPixel *strip = NULL;
 

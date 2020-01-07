@@ -11,20 +11,29 @@
 #define REPEATDELAY 1000
 #define LEDDELAY 4000
 #define FASTDELAY 10
-#define LEDS 40
+#define LEDS 124
 #define LOCALUDPPORT 8888
-#define NEO_PIN D6
-#define BUTTON_PIN D2
-#define CLOCK_DIO D1
-#define CLOCK_CLK D3
+#define LED_PIN D0
+#define NEO_PIN D7
+#define BUTTON_PIN D3
+#define CLOCK_DIO D5
+#define CLOCK_CLK D6
 #define WEBCOLORCOMPRESS 100
+#define RTCSTALECOUNT 100
+#define MQTT_SERVER "pi4"
+#define MQTT_PORT 1883
+#define MQTT_CHANNEL_PUB "home/bedroomclock/state"
+#define MQTT_CHANNEL_SUB "home/bedroomclock/control"
+#define MQTT_USER "clockuser"
+#define MQTT_PASSWORD "clockuser"
 
 
-IPAddress timeServer(192, 168, 42, 1);
+
+IPAddress timeServer(192, 168, 42, 88);
 const char* ntpServerName = "us.pool.ntp.org";
 
-const char* ssids[] = {"Acrid", "The Ranch-2.4", "ThunderLizard", "MakerHQ", "Milagro"};
-const char* passs[] = {"MyVoiceIsMyPassport", "916-955-0942", "SnarfSnarf", "sacramentomaker916", "Milagro123"};
-const int wifiCount = 5;
+const char* ssids[] = {""};
+const char* passs[] = {""};
+const int wifiCount = 4;
 
 #endif

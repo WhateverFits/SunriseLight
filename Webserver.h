@@ -244,7 +244,7 @@ class Webserver {
       }
 
       if (server->hasArg("ON") && server->arg("ON") == "On") {
-        Serial.println("Off requested");
+        Serial.println("On requested");
         _sunrise->On();
       }
 
@@ -297,7 +297,7 @@ class Webserver {
       content += "</div>\n</div>\n";
       content += "<button name='SUBMIT' value='Save' data-icon=\"check\">Save</button>\n";
 
-      content += "</form></div><div data-role='footer'><h3>" + _sunrise->GetState() + "</h3>\n";
+      content += "</form></div><div data-role='footer'><h3>" + (String)_sunrise->GetState() + "</h3>\n";
       content += "<div class='pb' id='pb' style='width:" + String(_sunrise->GetPercent()) + "%;background-color:#" + GetCompressedColor() + "'>&nbsp;</div>\n";
       content += "You can access this page until you <a href=\"/login?DISCONNECT=YES\">disconnect</a></div>" + javascript() + "</body></html>\n";
       server->sendHeader("Cache-Control", "no-cache");

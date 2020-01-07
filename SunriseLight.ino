@@ -8,6 +8,7 @@
 #include <EEPROM.h>
 #include <TM1637.h>
 #include <EasyButton.h>
+#include <PubSubClient.h>
 #include "Config.h"
 #include "Sunrise.h"
 #include "NTP.h"
@@ -19,9 +20,11 @@ EasyButton button(BUTTON_PIN);
 TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
 TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
 Timezone myTZ(myDST, mySTD);
+void mqttPublish(const char* status);
+void mqttCallback(char* topic, byte* payload, unsigned int length);
 
 void setupAlarms();
-Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN);
+Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, mqttPublish);
 Webserver server = Webserver(80, &sunrise, setupAlarms);
 
 long lastTime = 0;
@@ -32,6 +35,13 @@ int morningIndex = -1;
 int eveningIndex = -1;
 int moonIndex = -1;
 int moonSetIndex = -1;
+
+DynamicJsonDocument mqttDoc(1024);
+WiFiClient mqttWiFiClient;
+String mqttClientId; 
+long lastReconnectAttempt = 0; 
+
+PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, mqttWiFiClient);
 
 TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
 void MorningAlarm() {
@@ -193,7 +203,7 @@ void getSunriseSunsetTimes() {
       else
       {
         int today = weekday(local);
-	Alarm.free(morningIndex);
+    Alarm.free(morningIndex);
         if (today != 1 && today != 7)
         {
           morningIndex = createAlarm(hour, minute, MorningAlarm);
@@ -216,29 +226,181 @@ void getSunriseSunsetTimes() {
 }
 
 void onPressed() {
-	String state = sunrise.GetState();
-	if (state == "Off") {
-		Serial.println("Sunrise");
-		sunrise.StartSunrise();
-	} else if (state == "Sunrise") {
-		Serial.println("Sunset");
-		sunrise.StartSunset();
-	} else if (state == "Sunset") {
-		Serial.println("Moonrise");
-		sunrise.StartMoonrise();
-	} else {
-		Serial.println("Moonset");
-		sunrise.StartMoonset();
-	}
+    String state = (String)sunrise.GetState();
+    if (state == "Off") {
+        Serial.println("Sunrise");
+        sunrise.StartSunrise();
+    } else if (state == "Sunrise") {
+        Serial.println("Sunset");
+        sunrise.StartSunset();
+    } else if (state == "Sunset") {
+        Serial.println("Moonrise");
+        sunrise.StartMoonrise();
+    } else {
+        Serial.println("Moonset");
+        sunrise.StartMoonset();
+    }
 }
 
 void onPressedForDuration() {
-	Serial.println("Kill it");
-	sunrise.FastToggle();
+    Serial.println("Kill it");
+    sunrise.FastToggle();
+}
+
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  String message = (char*)payload;
+  Serial.println(message.substring(0, length));
+  StaticJsonDocument<1000> doc;
+  DeserializationError err= deserializeJson(doc, message.substring(0, length));
+  String action = doc["Action"];
+  if (action == "Sunrise") sunrise.StartSunrise();
+  if (action == "Sunset") sunrise.StartSunset();
+  if (action == "Moonrise") sunrise.StartMoonrise();
+  if (action == "Moonset") sunrise.StartMoonset();
+  if (action == "On") sunrise.On();
+  if (action == "Off") sunrise.Off();
+  if (action == "FastToggle") sunrise.FastToggle();
+}
+
+void mqttPublish(const char* status) {
+	if (mqttClient.connected()) {
+		mqttDoc["Status"] = status;
+		time_t utc = now();
+		time_t local = myTZ.toLocal(utc, &tcr);
+		mqttDoc["Date"] = formatTime(local, tcr -> abbrev);
+		mqttDoc["Percent"] = sunrise.GetPercent();
+		mqttDoc["Value"] = sunrise.GetValue();
+		char buffer[512];
+		size_t n = serializeJson(mqttDoc, buffer);
+		mqttClient.publish(MQTT_CHANNEL_PUB, buffer, true);
+	}
+}
+
+boolean mqttReconnect() {
+    char buf[100];
+    mqttClientId.toCharArray(buf, 100);
+	if (mqttClient.connect(buf, MQTT_USER, MQTT_PASSWORD)) {
+		mqttClient.subscribe(MQTT_CHANNEL_SUB);
+	}
+
+	return mqttClient.connected();
+}
+
+String generateMqttClientId() {
+  char buffer[4];
+  uint8_t macAddr[6];
+  WiFi.macAddress(macAddr);
+  sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
+  return "SunriseLight" + String(buffer);
+}
+
+int findWiFi() {
+  // Connect to a WiFi network
+  Serial.println("Scanning networks");
+  int n = WiFi.scanNetworks();
+  int found = -1;
+  if (n == 0) {
+    Serial.println("no networks found");
+    tm1637.dispNumber(9999);
+  }
+  else
+  {
+    Serial.print(n);
+    Serial.println(" networks found");
+    for (int stored = 0; stored < wifiCount && found == -1; stored++) {
+      for (int i = 0; i < n; ++i)
+      {
+        if (WiFi.SSID(i) == ssids[stored])
+        {
+          found = stored;
+          Serial.print("Connecting to ");
+          Serial.println(ssids[found]);
+          sunrise.SetPixel(0, 50, 0, 0);
+          break;
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
+void connectWiFi(int found) {
+  //Serial.print("Connecting to ");
+  //Serial.println(ssids[found]);
+  sunrise.SetPixel(1, 50, 0, 0);
+  #ifdef DNSNAME
+  WiFi.hostname(DNSNAME);
+  #else
+  char buffer[4];
+  uint8_t macAddr[6];
+  WiFi.macAddress(macAddr);
+  sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
+  WiFi.hostname("SunriseLight" + String(buffer));
+  #endif
+  WiFi.begin(ssids[found], passs[found]);
+  sunrise.SetPixel(2, 50, 0, 0);
+
+  bool first = true;
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    if (first)
+      sunrise.SetPixel(3, 50, 0, 0);
+    else
+      sunrise.SetPixel(3, 0, 0, 50);
+    first != first;
+    if (!rtc.lostPower()) {
+        utc = rtc.now().unixtime();
+        Serial.print("rtc: ");
+        Serial.println(utc);
+        local = myTZ.toLocal(utc, &tcr);
+        tm1637.dispNumber(hour(local) * 100 + minute(local));
+    }
+  }
+
+  sunrise.SetPixel(4, 50, 0, 0);
+
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Netmask: ");
+  Serial.println(WiFi.subnetMask());
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+
+  sunrise.SetPixel(5, 50, 0, 0);
+
+  Udp.begin(LOCALUDPPORT);
+  Serial.print("Local port: ");
+  Serial.println(Udp.localPort());
+  Serial.println("waiting for sync");
+  setSyncProvider(getNtpTime);
+  sunrise.SetPixel(6, 50, 0, 0);
+  for (int i = 0; i < 7; i++) {
+    sunrise.SetPixel(i, 0, 0, 0);
+  }
+}
+
+void setupWiFi(){
+  int found = -1;
+  bool first = true;
+  while (found == -1) {
+    if (first)
+      sunrise.SetPixel(0, 50, 50, 0);
+    else
+      sunrise.SetPixel(0, 0, 50, 50);
+    first != first;
+    found = findWiFi();
+    if (found == -1) {
+      delay(5000);
+    }
+  }
+
+  connectWiFi(found);
 }
 
 void setup() {
-  //Serial.begin(74880);
   Serial.begin(115200);
   delay(100);
   Serial.println();
@@ -249,99 +411,37 @@ void setup() {
   tm1637.setBrightness(CLOCKBRIGHT);
   tm1637.dispNumber(0);
 
-  // Set up button
-  //pinMode(BUTTON_PIN, INPUT_PULLUP);
+  rtc.begin();
 
-  // Connect to a WiFi network
-  Serial.println("Scanning networks");
-  int n = WiFi.scanNetworks();
-  int found = -1;
-  tm1637.dispNumber(1);
-  if (n == 0) {
-    Serial.println("no networks found");
-    tm1637.dispNumber(9999);
-  }
-  else
-  {
-    Serial.print(n);
-    Serial.println(" networks found");
-    tm1637.dispNumber(n);
-    for (int stored = 0; stored < wifiCount && found == -1; stored++) {
-      for (int i = 0; i < n; ++i)
-      {
-        if (WiFi.SSID(i) == ssids[stored])
-        {
-          found = stored;
-          Serial.print("Connecting to ");
-          Serial.println(ssids[found]);
-          tm1637.dispNumber(1111);
-          break;
-        }
-      }
-    }
-  }
-
-  if (found > -1)
-  {
-    //Serial.print("Connecting to ");
-    //Serial.println(ssids[found]);
-    tm1637.dispNumber(2222);
-    uint8_t macAddr[6];
-    WiFi.macAddress(macAddr);
-    char buffer[4];
-    sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
-    WiFi.hostname("SunriseLight" + String(buffer));
-    WiFi.begin(ssids[found], passs[found]);
-    tm1637.dispNumber(3333);
-    
-    bool first = true;
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-      if (first)
-        sunrise.SetPixel(0, 50, 0, 0);
-      else
-        sunrise.SetPixel(0, 0, 0, 50);
-    }
-
-    tm1637.dispNumber(4444);
-    sunrise.SetPixel(0, 0, 50, 0);
-
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("Netmask: ");
-    Serial.println(WiFi.subnetMask());
-    Serial.print("Gateway: ");
-    Serial.println(WiFi.gatewayIP());
-
-    tm1637.dispNumber(5555);
-    
-    Udp.begin(LOCALUDPPORT);
-    Serial.print("Local port: ");
-    Serial.println(Udp.localPort());
-    Serial.println("waiting for sync");
-    setSyncProvider(getNtpTime);
-    sunrise.SetPixel(0, 0, 0, 0);
-    tm1637.dispNumber(6666);
+  if (!rtc.lostPower()) {
+      utc = rtc.now().unixtime();
+      Serial.print("rtc: ");
+      Serial.println(utc);
+      local = myTZ.toLocal(utc, &tcr);
+      tm1637.dispNumber(hour(local) * 100 + minute(local));
   } else {
-    sunrise.SetPixel(0, 255, 0, 0);
+      Serial.print("rtc: lost power.");
   }
+
+  setupWiFi();
 
   EEPROM.begin(10);
   server.Initialize();
-  tm1637.dispNumber(7777);
 
   button.begin();
   // Add the callback function to be called when the button is pressed.
   button.onPressed(onPressed);
   button.onPressedFor(1000, onPressedForDuration);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
+
+  mqttClientId = generateMqttClientId();
 }
 
 void loop() {
   Alarm.delay(0);
   sunrise.Update();
-	button.read();
+  button.read();
     
   long milliseconds = millis();
   utc = now();
@@ -360,7 +460,21 @@ void loop() {
     lastTimeClock = milliseconds;
     tm1637.dispNumber(hour(local) * 100 + minute(local));
     tm1637.switchColon();
+	digitalWrite(LED_PIN, LOW);
   }
 
   server.HandleClient();
+
+  if (!mqttClient.connected()) {
+    long now = millis();
+    if (now - lastReconnectAttempt > 5000) {
+      lastReconnectAttempt = now;
+      // Attempt to reconnect
+      if (mqttReconnect()) {
+        lastReconnectAttempt = 0;
+      }
+    }
+  } else {
+    mqttClient.loop();
+  }
 }

@@ -1,3 +1,8 @@
+#include <stdint.h>
+#include <RTClib.h>
+
+RTC_DS3231 rtc;
+
 /*-------- NTP code ----------*/
 WiFiUDP Udp;
 
@@ -37,8 +42,20 @@ String IpAddress2String(const IPAddress& ipAddress)
 
 int ntpRetryCount = 3;
 int ntpRetry = 0;
+long rtcCount = RTCSTALECOUNT;
 time_t getNtpTime()
 {
+  // Check if we have a time and it isn't too stale.
+  if (!rtc.lostPower() && rtcCount < RTCSTALECOUNT) {
+	  rtcCount++;
+	  Serial.println("Returning RTC value");
+	  long u = rtc.now().unixtime();
+	  Serial.print("rtc: ");
+	  Serial.println(u);
+	  return u;
+  }
+
+
   while (Udp.parsePacket() > 0) ; // discard any previously received packets
   // Fall back to using the global NTP pool server in case we cannot connect to internal NTP server
   if (ntpRetry > 1)
@@ -61,7 +78,17 @@ time_t getNtpTime()
       randomSeed(secsSince1900);
       // Make sure we chill a little
       setSyncInterval(300);
-      return secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
+	  unsigned long calcTime = secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
+	  rtc.adjust(DateTime(calcTime));
+	  DateTime timeNow = rtc.now();
+	  long u = timeNow.unixtime();
+	  Serial.print("rtc: ");
+	  Serial.println(u);
+	  Serial.print("ntp: ");
+	  Serial.println(calcTime);
+	  // Reset the RTC stale counter. 
+	  rtcCount = 0;
+	  return calcTime;
     }
   }
   Serial.println("No NTP Response :-(");
@@ -73,5 +100,9 @@ time_t getNtpTime()
 
   // We couldn't connect so we are gonna try harder!
   setSyncInterval(5);
-  return 0; // return 0 if unable to get the time
+  if (!rtc.lostPower()) {
+	  return rtc.now().unixtime(); // return now if unable to get the time so we just get our RTC's time.
+  } else {
+	  return now(); // return now if unable to get the time so we just get our drifted internal time instead of wrong time.
+  }
 }
