@@ -20,6 +20,7 @@
 #define CLOCK_CLK D6
 #define WEBCOLORCOMPRESS 100
 #define RTCSTALECOUNT 100
+#define DNSNAME "BEDROOMCLOCK"
 #define MQTT_SERVER "pi4"
 #define MQTT_PORT 1883
 #define MQTT_CHANNEL_PUB "home/bedroomclock/state"
