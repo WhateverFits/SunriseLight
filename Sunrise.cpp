@@ -1,6 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Time.h>
 #include "Sunrise.h"
+#include "SunriseLight.h"
 
 void Sunrise::sunrise() {
   if (R < 255) {

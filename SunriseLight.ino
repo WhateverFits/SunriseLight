@@ -4,6 +4,7 @@
 #include <TimeAlarms.h>
 #include <Timezone.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266httpUpdate.h>
 #include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <TM1637.h>
@@ -37,6 +38,7 @@ int moonIndex = -1;
 int moonSetIndex = -1;
 
 DynamicJsonDocument mqttDoc(1024);
+DynamicJsonDocument mqttLogDoc(1024);
 WiFiClient mqttWiFiClient;
 String mqttClientId; 
 long lastReconnectAttempt = 0; 
@@ -260,6 +262,23 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (action == "On") sunrise.On();
   if (action == "Off") sunrise.Off();
   if (action == "FastToggle") sunrise.FastToggle();
+  if (action == "Update") {
+	  WiFiClient updateWiFiClient;
+	  t_httpUpdate_return ret = ESPhttpUpdate.update(updateWiFiClient, UPDATE_URL);
+	  switch (ret) {
+		  case HTTP_UPDATE_FAILED:
+			  Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+			  break;
+
+		  case HTTP_UPDATE_NO_UPDATES:
+			  Serial.println("HTTP_UPDATE_NO_UPDATES");
+			  break;
+
+		  case HTTP_UPDATE_OK:
+			  Serial.println("HTTP_UPDATE_OK");
+			  break;
+	  }
+  }
 }
 
 void mqttPublish(const char* status) {
@@ -273,6 +292,15 @@ void mqttPublish(const char* status) {
 		char buffer[512];
 		size_t n = serializeJson(mqttDoc, buffer);
 		mqttClient.publish(MQTT_CHANNEL_PUB, buffer, true);
+	}
+}
+
+void mqttLog(const char* status) {
+	if (mqttClient.connected()) {
+		mqttLogDoc["Status"] = status;
+		char buffer[512];
+		size_t n = serializeJson(mqttLogDoc, buffer);
+		mqttClient.publish(MQTT_CHANNEL_LOG, buffer, true);
 	}
 }
 
@@ -292,6 +320,22 @@ String generateMqttClientId() {
   WiFi.macAddress(macAddr);
   sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
   return "SunriseLight" + String(buffer);
+}
+
+void update_started() {
+  Serial.println("CALLBACK:  HTTP update process started");
+}
+
+void update_finished() {
+  Serial.println("CALLBACK:  HTTP update process finished");
+}
+
+void update_progress(int cur, int total) {
+  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
+}
+
+void update_error(int err) {
+  Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
 }
 
 int findWiFi() {
@@ -436,6 +480,12 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);
 
   mqttClientId = generateMqttClientId();
+
+  ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
+  ESPhttpUpdate.onStart(update_started);
+  ESPhttpUpdate.onEnd(update_finished);
+  ESPhttpUpdate.onProgress(update_progress);
+  ESPhttpUpdate.onError(update_error);
 }
 
 void loop() {
@@ -466,9 +516,8 @@ void loop() {
   server.HandleClient();
 
   if (!mqttClient.connected()) {
-    long now = millis();
-    if (now - lastReconnectAttempt > 5000) {
-      lastReconnectAttempt = now;
+    if (milliseconds - lastReconnectAttempt > 5000) {
+      lastReconnectAttempt = milliseconds;
       // Attempt to reconnect
       if (mqttReconnect()) {
         lastReconnectAttempt = 0;

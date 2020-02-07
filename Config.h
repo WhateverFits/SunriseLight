@@ -11,7 +11,7 @@
 #define REPEATDELAY 1000
 #define LEDDELAY 4000
 #define FASTDELAY 10
-#define LEDS 124
+#define LEDS 60
 #define LOCALUDPPORT 8888
 #define LED_PIN D0
 #define NEO_PIN D7
@@ -20,17 +20,19 @@
 #define CLOCK_CLK D6
 #define WEBCOLORCOMPRESS 100
 #define RTCSTALECOUNT 100
-#define DNSNAME "BEDROOMCLOCK"
+#define DNSNAME "testcircuit2"
 #define MQTT_SERVER "pi4"
 #define MQTT_PORT 1883
-#define MQTT_CHANNEL_PUB "home/bedroomclock/state"
-#define MQTT_CHANNEL_SUB "home/bedroomclock/control"
+#define MQTT_CHANNEL_PUB "home/" DNSNAME "/state"
+#define MQTT_CHANNEL_SUB "home/" DNSNAME "/control"
+#define MQTT_CHANNEL_LOG "home/" DNSNAME "/log"
 #define MQTT_USER "clockuser"
 #define MQTT_PASSWORD "clockuser"
+#define UPDATE_URL "http://pi4/cgi-bin/test.rb"
 
 
 
-IPAddress timeServer(192, 168, 42, 88);
+IPAddress timeServer(224, 0, 1, 1);
 const char* ntpServerName = "us.pool.ntp.org";
 
 const char* ssids[] = {""};
