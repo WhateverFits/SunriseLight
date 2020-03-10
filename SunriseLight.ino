@@ -4,6 +4,7 @@
 #include <TimeAlarms.h>
 #include <Timezone.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <ESP8266httpUpdate.h>
 #include <WiFiUdp.h>
 #include <EEPROM.h>
@@ -250,11 +251,18 @@ void onPressedForDuration() {
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  String message = (char*)payload;
-  Serial.println(message.substring(0, length));
-  StaticJsonDocument<1000> doc;
-  DeserializationError err= deserializeJson(doc, message.substring(0, length));
-  String action = doc["Action"];
+  Serial.printf("Inside mqtt callback: %s\n", topic);
+  Serial.println(length);
+
+  String topicString = (char*)topic;
+  topicString = topicString.substring(topicString.lastIndexOf('/')+1);
+  Serial.print("Topic: ");
+  Serial.print(topicString);
+
+  String action = (char*)payload;
+  action = action.substring(0, length);
+  Serial.println(action);
+
   if (action == "Sunrise") sunrise.StartSunrise();
   if (action == "Sunset") sunrise.StartSunset();
   if (action == "Moonrise") sunrise.StartMoonrise();
@@ -338,36 +346,6 @@ void update_error(int err) {
   Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
 }
 
-int findWiFi() {
-  // Connect to a WiFi network
-  Serial.println("Scanning networks");
-  int n = WiFi.scanNetworks();
-  int found = -1;
-  if (n == 0) {
-    Serial.println("no networks found");
-    tm1637.dispNumber(9999);
-  }
-  else
-  {
-    Serial.print(n);
-    Serial.println(" networks found");
-    for (int stored = 0; stored < wifiCount && found == -1; stored++) {
-      for (int i = 0; i < n; ++i)
-      {
-        if (WiFi.SSID(i) == ssids[stored])
-        {
-          found = stored;
-          Serial.print("Connecting to ");
-          Serial.println(ssids[found]);
-          sunrise.SetPixel(0, 50, 0, 0);
-          break;
-        }
-      }
-    }
-  }
-
-  return found;
-}
 
 void connectWiFi(int found) {
   //Serial.print("Connecting to ");
@@ -394,14 +372,7 @@ void connectWiFi(int found) {
     else
       sunrise.SetPixel(3, 0, 0, 50);
     first != first;
-    if (!rtc.lostPower()) {
-        utc = rtc.now().unixtime();
-        Serial.print("rtc: ");
-        Serial.println(utc);
-        local = myTZ.toLocal(utc, &tcr);
-        tm1637.dispNumber(hour(local) * 100 + minute(local));
-    }
-  }
+ }
 
   sunrise.SetPixel(4, 50, 0, 0);
 
@@ -415,33 +386,66 @@ void connectWiFi(int found) {
 
   sunrise.SetPixel(5, 50, 0, 0);
 
-  Udp.begin(LOCALUDPPORT);
   Serial.print("Local port: ");
   Serial.println(Udp.localPort());
   Serial.println("waiting for sync");
-  setSyncProvider(getNtpTime);
   sunrise.SetPixel(6, 50, 0, 0);
   for (int i = 0; i < 7; i++) {
     sunrise.SetPixel(i, 0, 0, 0);
   }
 }
 
-void setupWiFi(){
-  int found = -1;
-  bool first = true;
-  while (found == -1) {
-    if (first)
-      sunrise.SetPixel(0, 50, 50, 0);
-    else
-      sunrise.SetPixel(0, 0, 50, 50);
-    first != first;
-    found = findWiFi();
-    if (found == -1) {
-      delay(5000);
-    }
-  }
+void onConnect() {
+    Serial.print("Connected: ");
+    Serial.println(WiFi.localIP());
+    outputString("Connected", true);
+    connectedOnce = true;
+	Udp.begin(LOCALUDPPORT);
+	setSyncProvider(getNtpTime);
+}
 
-  connectWiFi(found);
+void setupWiFi(){
+  for (int i=0; i < wifiCount; i++) {
+    wifiMulti.addAP(ssids[i], passs[i]);
+  }
+  Serial.println("Connecting");
+  if (wifiMulti.run() == WL_CONNECTED) {
+  	onConnect();
+  }
+}
+
+void validateWiFi(long milliseconds) {
+  // Update WiFi status. Take care of rollover
+  if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
+    if (wifiMulti.run() != WL_CONNECTED) {
+      Serial.println("Disconnected");
+      outputString("Connecting", true);
+      connectedOnce = false;
+    } else {
+      if (!connectedOnce) {
+        Serial.print("Connected late to ");
+        Serial.println(WiFi.SSID());
+        outputString("", true);
+      }
+      connectedOnce = true;
+    }
+
+    lastTimeClock = milliseconds;
+  }
+}
+
+void validateMqtt(long milliseconds) {
+  if (!mqttClient.connected()) {
+    if (milliseconds - lastReconnectAttempt > 5000) {
+      lastReconnectAttempt = milliseconds;
+      // Attempt to reconnect
+      if (mqttReconnect()) {
+        lastReconnectAttempt = 0;
+      }
+    }
+  } else {
+    mqttClient.loop();
+  }
 }
 
 void setup() {
@@ -489,11 +493,15 @@ void setup() {
 }
 
 void loop() {
+  long milliseconds = millis();
+
   Alarm.delay(0);
   sunrise.Update();
   button.read();
+
+  validateWiFi(milliseconds);
+  validateMqtt(milliseconds);
     
-  long milliseconds = millis();
   utc = now();
   local = myTZ.toLocal(utc, &tcr);
 
