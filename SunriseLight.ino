@@ -28,6 +28,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length);
 void setupAlarms();
 Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, mqttPublish);
 Webserver server = Webserver(80, &sunrise, setupAlarms);
+ESP8266WiFiMulti wifiMulti;
 
 long lastTime = 0;
 long lastTimeClock = 0;
@@ -37,6 +38,8 @@ int morningIndex = -1;
 int eveningIndex = -1;
 int moonIndex = -1;
 int moonSetIndex = -1;
+
+bool connectedOnce = false;
 
 DynamicJsonDocument mqttDoc(1024);
 DynamicJsonDocument mqttLogDoc(1024);
@@ -398,13 +401,22 @@ void connectWiFi(int found) {
 void onConnect() {
     Serial.print("Connected: ");
     Serial.println(WiFi.localIP());
-    outputString("Connected", true);
     connectedOnce = true;
 	Udp.begin(LOCALUDPPORT);
 	setSyncProvider(getNtpTime);
 }
 
 void setupWiFi(){
+  #ifdef DNSNAME
+  WiFi.hostname(DNSNAME);
+  #else
+  char buffer[4];
+  uint8_t macAddr[6];
+  WiFi.macAddress(macAddr);
+  sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
+  WiFi.hostname("SunriseLight" + String(buffer));
+  #endif
+
   for (int i=0; i < wifiCount; i++) {
     wifiMulti.addAP(ssids[i], passs[i]);
   }
@@ -417,20 +429,20 @@ void setupWiFi(){
 void validateWiFi(long milliseconds) {
   // Update WiFi status. Take care of rollover
   if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
-    if (wifiMulti.run() != WL_CONNECTED) {
-      Serial.println("Disconnected");
-      outputString("Connecting", true);
-      connectedOnce = false;
-    } else {
-      if (!connectedOnce) {
-        Serial.print("Connected late to ");
-        Serial.println(WiFi.SSID());
-        outputString("", true);
-      }
-      connectedOnce = true;
-    }
+	if (wifiMulti.run() != WL_CONNECTED) {
+	  Serial.println("Disconnected");
+	  connectedOnce = false;
+	} else {
+	  if (!connectedOnce) {
+		Serial.print("Connected late to ");
+		Serial.println(WiFi.SSID());
+		onConnect();
+	  }
 
-    lastTimeClock = milliseconds;
+	  connectedOnce = true;
+	}
+
+	lastTimeClock = milliseconds;
   }
 }
 

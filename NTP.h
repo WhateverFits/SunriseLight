@@ -46,7 +46,6 @@ int ntpRetry = 0;
 long rtcCount = RTCSTALECOUNT;
 time_t getNtpTime()
 {
-	//mqttLog("NTP a");
   // Check if we have a time and it isn't too stale.
   if (!rtc.lostPower() && rtcCount < RTCSTALECOUNT) {
 	  rtcCount++;
@@ -57,39 +56,31 @@ time_t getNtpTime()
 	  return u;
   }
 
-	Serial.println("NTP b");
 
   while (Udp.parsePacket() > 0) ; // discard any previously received packets
   // Fall back to using the global NTP pool server in case we cannot connect to internal NTP server
   if (ntpRetry > 1)
     WiFi.hostByName(ntpServerName, timeServer);
-	Serial.println("NTP c");
   Serial.print("Transmit NTP Request to ");
   Serial.println(IpAddress2String(timeServer));
   sendNTPpacket(timeServer);
-	Serial.println("NTP d");
   uint32_t beginWait = millis();
 	while (millis() - beginWait < 1500) {
 		int size = Udp.parsePacket();
 		if (size >= NTP_PACKET_SIZE) {
 			Serial.println("Receive NTP Response");
 			Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
-			Serial.println("NTP g");
 			unsigned long secsSince1900;
 			// convert four bytes starting at location 40 to a long integer
 			secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
 			secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
 			secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
 			secsSince1900 |= (unsigned long)packetBuffer[43];
-			Serial.println("NTP h");
 			randomSeed(secsSince1900);
 			// Make sure we chill a little
 			setSyncInterval(45);
-			Serial.println("NTP i");
 			unsigned long calcTime = secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
-			Serial.println("NTP j");
 			rtc.adjust(DateTime(calcTime));
-			Serial.println("NTP k");
 			DateTime timeNow = rtc.now();
 			long u = timeNow.unixtime();
 			Serial.print("rtc: ");
@@ -98,14 +89,12 @@ time_t getNtpTime()
 			Serial.println(calcTime);
 			// Reset the RTC stale counter. 
 			rtcCount = 0;
-			Serial.println("NTP l");
 			return calcTime;
 		}
   }
   Serial.println("No NTP Response :-(");
   if (ntpRetry < ntpRetryCount) 
   {
-		Serial.println("NTP m");
     ntpRetry++;
     return getNtpTime();
   }
