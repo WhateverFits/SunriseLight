@@ -38,5 +38,6 @@ const char* ntpServerName = "us.pool.ntp.org";
 const char* ssids[] = {""};
 const char* passs[] = {""};
 const int wifiCount = 4;
+const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
 
 #endif

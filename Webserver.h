@@ -1,6 +1,7 @@
 #include <ESP8266WebServer.h>
 #include <time.h>
 #include "Sunrise.h"
+#include "Config.h"
 
 class Webserver {
   public:
@@ -90,6 +91,8 @@ class Webserver {
       });\n\
       }\n\
       </script>\n\
+      <title> Sunrise Alarm Clock - " + String(DNSNAME) + "\n\
+      </title>\n\
       </head>\n");
       //return String("<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0'><style>form{width:80%;margin:0 auto;}label,input{display:inline-block;}label{width:40%;text-align:right;}label+input{width:30%;margin:0 20% 2% 4%;}.l{display:block;text-align:left;margin:0 auto 2% auto;width:60%;}.h{width:10%;margin-right:0px}</style>");
     }
@@ -186,7 +189,7 @@ class Webserver {
         server->sendContent(header);
         return;
       }
-      String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control</H2></div><div class='ui-content'>";
+      String content = "<html>" + genCSS() + "<body data-role='page'><div data-role='header'><H2>Sunrise Alarm Control - " + String(DNSNAME) + "</H2></div><div class='ui-content'>";
       bool enabled = true;
       bool moonenabled = false;
       if (server->hasArg("ENABLE")) {

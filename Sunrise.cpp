@@ -17,7 +17,7 @@ void Sunrise::sunrise() {
 	stateChanged = true;
   }
   for (int i = 0; i < numLeds; i++) {
-	if (R < numLeds && i >= R)
+	if (R < numLeds && i >= R * 4)
 	  strip->setPixelColor(i, 0, 0, 0);
 	else
 	  strip->setPixelColor(i, R, G, B);
@@ -46,7 +46,7 @@ void Sunrise::sunset() {
 	stateChanged = true;
   }
   for (int i = numLeds - 1; i >= 0; i--) {
-	if (R < numLeds && i >= R)
+	if (R < numLeds && i >= R * 4)
 	  strip->setPixelColor(i, 0, 0, 0);
 	else
 	  strip->setPixelColor(i, R, G, B);
@@ -75,7 +75,7 @@ void Sunrise::moonrise() {
 	stateChanged = true;
   }
   for (int i = 0; i < numLeds; i++) {
-	if (B < numLeds && i >= B)
+	if (B < numLeds && i >= B * 4)
 	  strip->setPixelColor(i, 0, 0, 0);
 	else
 	  strip->setPixelColor(i, R, G, B);
@@ -104,7 +104,7 @@ void Sunrise::moonset() {
 	stateChanged = true;
   }
   for (int i = numLeds - 1; i >= 0; i--) {
-	if (B < numLeds && i >= B)
+	if (B < numLeds && i >= B * 4)
 	  strip->setPixelColor(i, 0, 0, 0);
 	else
 	  strip->setPixelColor(i, R, G, B);
