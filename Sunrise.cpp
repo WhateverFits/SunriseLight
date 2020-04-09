@@ -66,11 +66,11 @@ void Sunrise::moonrise() {
 	B++;
 	stateChanged = true;
   }
-  if (B > 20 && G < 80) {
+  if (B > 20 && G < 60) {
 	G++;
 	stateChanged = true;
   }
-  if (B > 20 && R < 80) {
+  if (B > 20 && R < 60) {
 	R++;
 	stateChanged = true;
   }
@@ -91,7 +91,7 @@ void Sunrise::moonrise() {
 }
 
 void Sunrise::moonset() {
-  if (B > 0 && G < 80) {
+  if (B > 0 && G < 60) {
 	B--;
 	stateChanged = true;
   }

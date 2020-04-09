@@ -473,6 +473,7 @@ void update_finished() {
 
 void update_progress(int cur, int total) {
   Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
+  tm1637.dispNumber(cur * 100 / total);
 }
 
 void update_error(int err) {
