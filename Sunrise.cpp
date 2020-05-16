@@ -119,6 +119,10 @@ void Sunrise::moonset() {
   }
 }
 
+void Sunrise::StripShow() {
+  strip->show();
+}
+
 void Sunrise::SetValue(int r, int g, int b) {
   if (R != r || G != g || B != b) {
 	stateChanged = true;
@@ -231,8 +235,12 @@ void Sunrise::SetPixel(int pixel, byte r, byte g, byte b) {
 }
 
 const char * Sunrise::GetState() {
-  if (showSunrise)
-    return "Sunrise";
+  if (showSunrise){
+	if (GetPercent() == 100)
+	  return "On";
+	else
+	  return "Sunrise";
+  }
   else if (showSunset)
     return "Sunset";
   else if (showMoon)

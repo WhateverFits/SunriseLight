@@ -31,6 +31,7 @@ const char* formatTime(time_t t, char *tz)
 
 void printTime(time_t t, char *tz)
 {
+  Serial.print("The time is ");
   sPrintI00(hour(t));
   sPrintDigits(minute(t));
   sPrintDigits(second(t));

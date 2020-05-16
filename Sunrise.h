@@ -34,9 +34,11 @@ class Sunrise {
     void SetValue(int r, int g, int b);
     
     unsigned long GetValue();
+
+    void StripShow();
     
   protected:
-    private:
+  private:
     int _delay;
     int _fastDelay;
     int workingDelay;
