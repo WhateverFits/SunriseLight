@@ -2,27 +2,34 @@ let SessionLoad = 1
 if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
+imap <Nul> <C-Space>
+inoremap <expr> <Up> pumvisible() ? "\" : "\<Up>"
+inoremap <expr> <S-Tab> pumvisible() ? "\" : "\<S-Tab>"
+inoremap <expr> <Down> pumvisible() ? "\" : "\<Down>"
 map! <S-Insert> <MiddleMouse>
+nnoremap \d :YcmShowDetailedDiagnostic
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
 map <S-Insert> <MiddleMouse>
 vnoremap <silent> <Plug>NetrwBrowseXVis :call netrw#BrowseXVis()
 nnoremap <silent> <Plug>NetrwBrowseX :call netrw#BrowseX(expand((exists("g:netrw_gx")? g:netrw_gx : '<cfile>')),netrw#CheckIfRemote())
+inoremap <expr> 	 pumvisible() ? "\" : "\	"
 let &cpo=s:cpo_save
 unlet s:cpo_save
 set backspace=indent,eol,start
+set completefunc=youcompleteme#CompleteFunc
+set completeopt=preview,menuone
+set cpoptions=aAceFsB
 set fileencodings=ucs-bom,utf-8,default,latin1
 set helplang=en
 set nomodeline
 set mouse=a
 set printoptions=paper:letter
 set ruler
-set runtimepath=~/.vim,/var/lib/vim/addons,/usr/share/vim/vimfiles,/usr/share/vim/vim80,/usr/share/vim/vimfiles/after,/var/lib/vim/addons/after,~/.vim/after
-set shiftwidth=2
+set runtimepath=~/.vim,/var/lib/vim/addons,/usr/share/vim/vimfiles,/usr/share/vim/vim80,/usr/share/vim/vimfiles/after,/var/lib/vim/addons/after,~/.vim/after,~/dev/tabnine-vim
+set shortmess=filnxtToOc
 set suffixes=.bak,~,.swp,.o,.info,.aux,.log,.dvi,.bbl,.blg,.brf,.cb,.ind,.idx,.ilg,.inx,.out,.toc
-set tabstop=4
 set termencoding=utf-8
-set window=54
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
@@ -32,20 +39,20 @@ if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
 endif
 set shortmess=aoO
 badd +1 SunriseLight.ino
-badd +1 Sunrise.cpp
-badd +1 Config.h
-badd +1 Formatting.h
-badd +1 NTP.h
-badd +1 Sunrise.h
-badd +1 Webserver.h
+badd +0 Config.h
+badd +0 Formatting.h
+badd +0 Sunrise.cpp
+badd +0 Sunrise.h
+badd +0 SunriseLight.h
+badd +0 Webserver.h
 argglobal
 silent! argdel *
 $argadd SunriseLight.ino
-$argadd Sunrise.cpp
 $argadd Config.h
 $argadd Formatting.h
-$argadd NTP.h
+$argadd Sunrise.cpp
 $argadd Sunrise.h
+$argadd SunriseLight.h
 $argadd Webserver.h
 set stal=2
 edit SunriseLight.ino
@@ -76,7 +83,7 @@ setlocal commentstring=/*%s*/
 setlocal complete=.,w,b,u,t,i
 setlocal concealcursor=
 setlocal conceallevel=0
-setlocal completefunc=
+setlocal completefunc=youcompleteme#CompleteFunc
 setlocal nocopyindent
 setlocal cryptmethod=
 setlocal nocursorbind
@@ -138,7 +145,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=4
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -154,7 +161,7 @@ setlocal synmaxcol=3000
 if &syntax != 'arduino'
 setlocal syntax=arduino
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -168,13 +175,13 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 226 - ((0 * winheight(0) + 27) / 54)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-226
-normal! 023|
-tabedit Sunrise.cpp
+1
+normal! 0
+tabedit Config.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
@@ -265,7 +272,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=2
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -281,7 +288,7 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -295,13 +302,13 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 16 - ((15 * winheight(0) + 27) / 54)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-16
-normal! 03|
-tabedit Config.h
+1
+normal! 0
+tabedit Formatting.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
@@ -392,7 +399,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=4
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -408,7 +415,7 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -422,13 +429,13 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 27) / 55)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit Formatting.h
+tabedit Sunrise.cpp
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
@@ -519,7 +526,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=4
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -535,7 +542,7 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -549,13 +556,13 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 27) / 55)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit NTP.h
+tabedit Sunrise.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
@@ -646,7 +653,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=4
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -662,7 +669,7 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -676,13 +683,13 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 25 - ((16 * winheight(0) + 27) / 55)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-25
-normal! 063|
-tabedit Sunrise.h
+1
+normal! 0
+tabedit SunriseLight.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
@@ -773,7 +780,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=4
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -789,7 +796,7 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -803,11 +810,11 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 7 - ((6 * winheight(0) + 27) / 55)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-7
+1
 normal! 0
 tabedit Webserver.h
 set splitbelow splitright
@@ -900,7 +907,7 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=4
+setlocal shiftwidth=8
 setlocal noshortname
 setlocal signcolumn=auto
 setlocal nosmartindent
@@ -916,7 +923,7 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal tagcase=
 setlocal tags=
 setlocal termkey=
@@ -930,19 +937,19 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 170 - ((20 * winheight(0) + 27) / 55)
+let s:l = 1 - ((0 * winheight(0) + 18) / 36)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-170
-normal! 038|
-tabnext 2
+1
+normal! 0
+tabnext 1
 set stal=1
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf
 endif
 unlet! s:wipebuf
-set winheight=1 winwidth=20 shortmess=filnxtToO
+set winheight=1 winwidth=20 shortmess=filnxtToOc
 set winminheight=1 winminwidth=1
 let s:sx = expand("<sfile>:p:r")."x.vim"
 if file_readable(s:sx)

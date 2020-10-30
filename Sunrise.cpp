@@ -5,30 +5,31 @@
 
 void Sunrise::sunrise() {
   if (R < 255) {
-	R++;
-	  stateChanged = true;
-	}
-	if (R > 20 && G < 255) {
-	  G++;
-	  stateChanged = true;
+    R++;
+    stateChanged = true;
   }
-  if (R > 100 && B < 255) {
-	B++;
-	stateChanged = true;
+  if (R > 90 && G < 255) {
+    G++;
+    stateChanged = true;
   }
-  for (int i = 0; i < numLeds; i++) {
-	if (R < numLeds && i >= R * 4)
-	  strip->setPixelColor(i, 0, 0, 0);
-	else
-	  strip->setPixelColor(i, R, G, B);
+  if (R > 150 && B < 255) {
+    B++;
+    stateChanged = true;
   }
 
   if (stateChanged) {
-	Serial.print("sunrise ");
-	Serial.println(GetColor());
-	if (_stateChange && R == 255 && G == 255 && B == 255) {
-	  _stateChange(GetState());
-	}
+    for (int i = 0; i < numLeds; i++) {
+      if (R < numLeds && i >= R * 4)
+	strip->setPixelColor(i, 0, 0, 0);
+      else
+	strip->setPixelColor(i, R, G, B);
+    }
+
+    Serial.print("sunrise ");
+    Serial.println(GetColor());
+    if (_stateChange && R == 255 && G == 255 && B == 255) {
+      _stateChange(GetState());
+    }
   }
 }
 
@@ -160,19 +161,33 @@ void Sunrise::On() {
   showSunset = false;
   showMoon = false;  
   if (_stateChange) {
-	_stateChange("Sunrise");
+	_stateChange("On");
   }
   stateChanged = true;
 }
 
 void Sunrise::FastToggle() {
   if (showSunrise) {
-	StartSunset();
+    StartSunset();
   } else {
-	StartSunrise();
+    StartSunrise();
   }
 
   workingDelay = _fastDelay;
+}
+
+void Sunrise::Toggle() {
+  float percent = GetPercent();
+
+  if (percent == 0) {
+    StartSunrise();
+  } else if (percent == 100) {
+    StartSunset();
+  } else if (showSunrise) {
+    StartSunset();
+  } else {
+    StartSunrise();
+  }
 }
 
 Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin, THandlerFunction stateChange) {
@@ -235,12 +250,12 @@ void Sunrise::SetPixel(int pixel, byte r, byte g, byte b) {
 }
 
 const char * Sunrise::GetState() {
-  if (showSunrise){
-	if (GetPercent() == 100)
-	  return "On";
-	else
-	  return "Sunrise";
-  }
+  if (GetPercent() == 100)
+    return "On";
+  else if (GetPercent() == 0)
+    return "Off";
+  else if (showSunrise)
+    return "Sunrise";
   else if (showSunset)
     return "Sunset";
   else if (showMoon)

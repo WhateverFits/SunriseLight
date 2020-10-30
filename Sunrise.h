@@ -31,6 +31,8 @@ class Sunrise {
 
     void FastToggle();
 
+    void Toggle();
+
     void SetValue(int r, int g, int b);
     
     unsigned long GetValue();
