@@ -20,103 +20,107 @@ void Sunrise::sunrise() {
   if (stateChanged) {
     for (int i = 0; i < numLeds; i++) {
       if (R < numLeds && i >= R * 4)
-	strip->setPixelColor(i, 0, 0, 0);
+        strip->setPixelColor(i, 0, 0, 0);
       else
-	strip->setPixelColor(i, R, G, B);
+        strip->setPixelColor(i, R, G, B);
     }
 
     Serial.print("sunrise ");
     Serial.println(GetColor());
     if (_stateChange && R == 255 && G == 255 && B == 255) {
       _stateChange(GetState());
+      workingDelay = _delay;
     }
   }
 }
 
 void Sunrise::sunset() {
   if (R > 0 && G < 155) {
-	R--;
-	stateChanged = true;
+    R--;
+    stateChanged = true;
   }
   if (G > 0 && B < 235) {
-	G--;
-	stateChanged = true;
+    G--;
+    stateChanged = true;
   }
   if (B > 0) {
-	B--;
-	stateChanged = true;
+    B--;
+    stateChanged = true;
   }
   for (int i = numLeds - 1; i >= 0; i--) {
-	if (R < numLeds && i >= R * 4)
-	  strip->setPixelColor(i, 0, 0, 0);
-	else
-	  strip->setPixelColor(i, R, G, B);
+    if (R < numLeds && i >= R * 4)
+      strip->setPixelColor(i, 0, 0, 0);
+    else
+      strip->setPixelColor(i, R, G, B);
   }   
 
   if (stateChanged) {
-	Serial.print("sunset ");
-	Serial.println(GetColor());
-	if (_stateChange && R == 0 && G == 0 && B == 0) {
-	  _stateChange(GetState());
-	}
+    Serial.print("sunset ");
+    Serial.println(GetColor());
+    if (_stateChange && R == 0 && G == 0 && B == 0) {
+      _stateChange(GetState());
+      workingDelay = _delay;
+    }
   }
 }
 
 void Sunrise::moonrise() {
   if (B < 255) {
-	B++;
-	stateChanged = true;
+    B++;
+    stateChanged = true;
   }
   if (B > 20 && G < 60) {
-	G++;
-	stateChanged = true;
+    G++;
+    stateChanged = true;
   }
   if (B > 20 && R < 60) {
-	R++;
-	stateChanged = true;
+    R++;
+    stateChanged = true;
   }
   for (int i = 0; i < numLeds; i++) {
-	if (B < numLeds && i >= B * 4)
-	  strip->setPixelColor(i, 0, 0, 0);
-	else
-	  strip->setPixelColor(i, R, G, B);
+    if (B < numLeds && i >= B * 4)
+      strip->setPixelColor(i, 0, 0, 0);
+    else
+      strip->setPixelColor(i, R, G, B);
   }
 
   if (stateChanged) {
-	Serial.print("moonrise ");
-	Serial.println(GetColor());
-	if (_stateChange && R == 80 && G == 80 && B == 255) {
-	  _stateChange(GetState());
-	}
+    Serial.print("moonrise ");
+    Serial.println(GetColor());
+    if (_stateChange && R == 80 && G == 80 && B == 255) {
+      _stateChange(GetState());
+      workingDelay = _delay;
+    }
   }
 }
 
 void Sunrise::moonset() {
   if (B > 0 && G < 60) {
-	B--;
-	stateChanged = true;
+    B--;
+    stateChanged = true;
   }
   if (G > 0) {
-	G--;
-	stateChanged = true;
+    G--;
+    stateChanged = true;
   }
   if (R > 0) {
-	R--;
-	stateChanged = true;
+    R--;
+    stateChanged = true;
   }
   for (int i = numLeds - 1; i >= 0; i--) {
-	if (B < numLeds && i >= B * 4)
-	  strip->setPixelColor(i, 0, 0, 0);
-	else
-	  strip->setPixelColor(i, R, G, B);
+    if (B < numLeds && i >= B * 4)
+      strip->setPixelColor(i, 0, 0, 0);
+    else
+      strip->setPixelColor(i, R, G, B);
   }
 
   if (stateChanged) {
-	Serial.print("moonset ");
-	Serial.println(GetColor());
-	if (_stateChange && R == 0 && G == 0 && B == 0) {
-	  _stateChange(GetState());
-	}
+    Serial.print("moonset ");
+    Serial.println(GetColor());
+    if (_stateChange && R == 0 && G == 0 && B == 0) {
+      _stateChange(GetState());
+      workingDelay = _delay;
+    }
   }
 }
 
@@ -126,7 +130,7 @@ void Sunrise::StripShow() {
 
 void Sunrise::SetValue(int r, int g, int b) {
   if (R != r || G != g || B != b) {
-	stateChanged = true;
+    stateChanged = true;
   }
 
   R = r;
@@ -150,7 +154,7 @@ void Sunrise::Off() {
   showSunset = false;
   showMoon = false;  
   if (_stateChange) {
-	_stateChange("Off");
+    _stateChange("Off");
   }
   stateChanged = true;
 }
@@ -161,33 +165,44 @@ void Sunrise::On() {
   showSunset = false;
   showMoon = false;  
   if (_stateChange) {
-	_stateChange("On");
+    _stateChange("On");
   }
   stateChanged = true;
 }
 
-void Sunrise::FastToggle() {
+bool Sunrise::FastToggle() {
+  bool sunrising = false;
   if (showSunrise) {
     StartSunset();
+    sunrising = false;
   } else {
     StartSunrise();
+    sunrising = true;
   }
 
   workingDelay = _fastDelay;
+  return sunrising;
 }
 
-void Sunrise::Toggle() {
+bool Sunrise::Toggle() {
   float percent = GetPercent();
+  bool sunrising = false;
 
   if (percent == 0) {
     StartSunrise();
+    sunrising = true;
   } else if (percent == 100) {
     StartSunset();
+    sunrising = false;
   } else if (showSunrise) {
     StartSunset();
+    sunrising = false;
   } else {
     StartSunrise();
+    sunrising = true;
   }
+
+  return sunrising;
 }
 
 Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin, THandlerFunction stateChange) {
@@ -208,7 +223,7 @@ void Sunrise::StartSunrise() {
   startTime = millis();
   workingDelay = _delay;
   if (_stateChange) {
-	_stateChange("Sunrise");
+    _stateChange("Sunrise");
   }
 }
 
@@ -219,7 +234,7 @@ void Sunrise::StartSunset() {
   startTime = millis();
   workingDelay = _delay;
   if (_stateChange) {
-	_stateChange("Sunset");
+    _stateChange("Sunset");
   }
 }
 
@@ -230,7 +245,7 @@ void Sunrise::StartMoonrise() {
   startTime = millis();
   workingDelay = _delay;
   if (_stateChange) {
-	_stateChange("Moonrise");
+    _stateChange("Moonrise");
   }
 }
 
@@ -241,7 +256,7 @@ void Sunrise::StartMoonset() {
   startTime = millis();
   workingDelay = _delay;
   if (_stateChange) {
-	_stateChange("Moonset");
+    _stateChange("Moonset");
   }
 }
 
@@ -277,21 +292,21 @@ String Sunrise::GetColor() {
 void Sunrise::Update() {
   unsigned long current = millis();
   if (current - startTime > workingDelay || current < startTime) {
-	if (showSunrise)
-	  sunrise();
-	else if (showSunset)
-	  sunset();
-	else if (showMoon)
-	  moonrise();
-	else
-	  moonset();
-	strip->show();
-	startTime = current;
-	if (_stateChange && stateChanged && (current >= lastUpdateTime + 1000 || current < lastUpdateTime)) {
-	  _stateChange(GetState());
-	  lastUpdateTime = current;
-	}
+    if (showSunrise)
+      sunrise();
+    else if (showSunset)
+      sunset();
+    else if (showMoon)
+      moonrise();
+    else
+      moonset();
+    strip->show();
+    startTime = current;
+    if (_stateChange && stateChanged && (current >= lastUpdateTime + 1000 || current < lastUpdateTime)) {
+      _stateChange(GetState());
+      lastUpdateTime = current;
+    }
 
-	stateChanged = false;
+    stateChanged = false;
   }
 }

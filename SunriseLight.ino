@@ -20,24 +20,47 @@
 #include "Formatting.h"
 #include "Webserver.h"
 
-TM1637 tm1637(CLOCK_DIO, CLOCK_CLK);
-EasyButton button(BUTTON_PIN);
-TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
-TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
-Timezone myTZ(myDST, mySTD);
+// MQTT method headers
 void mqttPublish(const char* status);
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 
+// Alarm header
 void setupAlarms();
+
+// Display
+TM1637 tm1637(CLOCK_DIO, CLOCK_CLK);
+
+// Sunrise
 Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, mqttPublish);
+
+// Web Server
 Webserver server = Webserver(80, &sunrise, setupAlarms);
+
+// WiFi connection
 ESP8266WiFiMulti wifiMulti;
+WiFiClient mqttWiFiClient;
+PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, mqttWiFiClient);
+
+// NTP and RTC
+RTC_DS3231 rtc;
+WiFiUDP Udp;
+
+// Control button
+EasyButton button(BUTTON_PIN);
+// LED on control button
 auto led = JLed(LED_PIN);
 
+// TimeZone rules
+TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
+TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
+Timezone myTZ(myDST, mySTD);
+
+// Locals
 long lastTime = 0;
 long lastTimeClock = 0;
 time_t utc, local;
 
+// Alarms
 int morningIndex = -1;
 int eveningIndex = -1;
 int moonIndex = -1;
@@ -45,24 +68,16 @@ int moonSetIndex = -1;
 
 bool connectedOnce = false;
 
-DynamicJsonDocument mqttDoc(1024);
-WiFiClient mqttWiFiClient;
 String mqttClientId; 
 long lastReconnectAttempt = 0; 
 
-PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, mqttWiFiClient);
-
-// NTP and RTC
-RTC_DS3231 rtc;
-WiFiUDP Udp;
-
-byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 int ntpRetryCount = 3;
 int ntpRetry = 0;
 long rtcCount = RTCSTALECOUNT;
-
+int displayBrightness = CLOCKBRIGHT;
 
 TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
+
 void MorningAlarm() {
   bool enabled;
   EEPROM.get(ENABLEDINDEX, enabled);
@@ -281,22 +296,53 @@ void getSunriseSunsetTimes() {
   mqttLog("getSunriseSunsetTimes - Exit");
 }
 
+// When the button is short pressed, execute this
 void onPressed() {
-  sunrise.Toggle();
+  bool sunrising = sunrise.Toggle();
   led.Off();
   led.Blink(200, 800).Repeat(1);
+  if (sunrising) {
+    tm1637.display("RISE");
+  } else {
+    tm1637.display("SET ");
+  }
+
+  // Reset the clock timer so that the RISE or SET displays for a second
+  lastTimeClock = millis();
 }
 
+// When the button is held for 1000 ms, execute this
 void onPressedForDuration() {
-  Serial.println("Kill it");
-  sunrise.FastToggle();
+  Serial.println("Fast Toggle from long press");
+  bool sunrising = sunrise.FastToggle();
   led.Off();
   led.Blink(200, 200).Repeat(5);
+  if (sunrising) {
+    tm1637.display("RISE");
+  } else {
+    tm1637.display("SET ");
+  }
+
+  // Reset the clock timer so that the RISE or SET displays for a second
+  lastTimeClock = millis();
+}
+
+void displayBright() {
+  if (++displayBrightness > 7) displayBrightness = 7;
+  mqttLog("displayBright: " + String(displayBrightness));
+  tm1637.setBrightness(displayBrightness);
+}
+
+void displayDim() {
+  if (--displayBrightness < 1) displayBrightness = 1;
+  mqttLog("displayDim: " + String(displayBrightness));
+  tm1637.setBrightness(displayBrightness);
 }
 
 // send an NTP request to the time server at the given address
 void sendNTPpacket(IPAddress &address)
 {
+  byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
@@ -348,6 +394,7 @@ time_t getNtpTime()
     Serial.println(IpAddress2String(timeServer));
     sendNTPpacket(timeServer);
     uint32_t beginWait = millis();
+    byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
     while (millis() - beginWait < 1500) {
       int size = Udp.parsePacket();
       if (size >= NTP_PACKET_SIZE) {
@@ -394,15 +441,14 @@ time_t getNtpTime()
     return now(); // return now if unable to get the time so we just get our drifted internal time instead of wrong time.
   }
 }
+
+// The callback when an MQTT message is received. We only listen to one topic (control)
+// so we only pay attenttion to the message/payload/action.
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.printf("Inside mqtt callback: %s\n", topic);
   Serial.println(length);
 
-  String topicString = (char*)topic;
-  topicString = topicString.substring(topicString.lastIndexOf('/')+1);
-  Serial.print("Topic: ");
-  Serial.print(topicString);
-
+  // This payload can be the entire buffer. Make sure to only use the provided length of it.
   String action = (char*)payload;
   action = action.substring(0, length);
   Serial.println(action);
@@ -413,7 +459,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (action == "Moonset") sunrise.StartMoonset();
   if (action == "On") sunrise.On();
   if (action == "Off") sunrise.Off();
-  if (action == "FastToggle") sunrise.FastToggle();
+  if (action == "DisplayBright") displayBright();
+  if (action == "DisplayDim") displayDim();
+  if (action == "FastToggle") {
+    bool sunrising = sunrise.FastToggle();
+    if (sunrising) {
+      tm1637.display("RISE");
+    } else {
+      tm1637.display("SET ");
+    }
+    // Reset the clock timer so that the RISE or SET displays for a second
+    lastTimeClock = millis();
+  }
   if (action == "Update") {
     WiFiClient updateWiFiClient;
     t_httpUpdate_return ret = ESPhttpUpdate.update(updateWiFiClient, UPDATE_URL);
@@ -433,8 +490,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+// Send out the provided message in JSON format to home/DNSNAME/state
 void mqttPublish(const char* status) {
   if (mqttClient.connected()) {
+    DynamicJsonDocument mqttDoc(1024);
     mqttDoc["Status"] = status;
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
@@ -476,7 +535,11 @@ String generateMqttClientId() {
   uint8_t macAddr[6];
   WiFi.macAddress(macAddr);
   sprintf(buffer, "%02x%02x", macAddr[4], macAddr[5]);
+#ifdef DNSNAME
+  return DNSNAME + String(buffer);
+#else
   return "SunriseLight" + String(buffer);
+#endif
 }
 
 void updateStarted() {
@@ -502,6 +565,26 @@ void updateError(int err) {
   Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
 }
 
+void WiFiEvent(WiFiEvent_t event) {
+  Serial.printf("[WiFi-event] event: %d\n", event);
+
+  switch(event) {
+    case WIFI_EVENT_STAMODE_GOT_IP:
+      Serial.println("WiFi connected");
+      Serial.println("IP address: ");
+      Serial.println(WiFi.localIP());
+      onConnect();
+      break;
+    case WIFI_EVENT_STAMODE_DISCONNECTED:
+      Serial.println("WiFi lost connection");
+      WiFi.disconnect();
+      connectedOnce = false;
+      delay(500);
+      wifiMulti.run();
+      break;
+  }
+}
+
 void onConnect() {
   Serial.print("Connected: ");
   Serial.println(WiFi.localIP());
@@ -511,6 +594,10 @@ void onConnect() {
 }
 
 void setupWiFi(){
+  WiFi.disconnect();
+  delay(1000);
+  //WiFi.onEvent(WiFiEvent);
+  WiFi.mode(WIFI_STA);
 #ifdef DNSNAME
   WiFi.hostname(DNSNAME);
 #else
@@ -525,18 +612,17 @@ void setupWiFi(){
     wifiMulti.addAP(ssids[i], passs[i]);
   }
   Serial.println("Connecting");
-  if (wifiMulti.run() == WL_CONNECTED) {
-    onConnect();
-  }
+  wifiMulti.run();
+  //WiFi.begin(ssids[0], passs[0]);
 }
 
 bool validateWiFi(long milliseconds) {
+  //return connectedOnce;
   // Update WiFi status. Take care of rollover
   if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
     if (wifiMulti.run() != WL_CONNECTED) {
       Serial.println("Disconnected");
       connectedOnce = false;
-      return false;
     } else {
       if (!connectedOnce) {
         Serial.print("Connected late to ");
@@ -548,7 +634,7 @@ bool validateWiFi(long milliseconds) {
     }
   }
 
-  return true;
+  return connectedOnce;
 }
 
 void validateMqtt(long milliseconds) {
@@ -593,7 +679,7 @@ void setup() {
     local = myTZ.toLocal(utc, &tcr);
     tm1637.dispNumber(hour(local) * 100 + minute(local));
   } else {
-    Serial.print("rtc: lost power.");
+    Serial.println("rtc: lost power.");
   }
 
   setupWiFi();
@@ -617,7 +703,7 @@ void setup() {
 }
 
 void loop() {
-  long milliseconds = millis();
+  //wifiMulti.run();
 
   Alarm.delay(0);
   button.read();
@@ -628,6 +714,8 @@ void loop() {
   }   
 
   led.Update();
+
+  long milliseconds = millis();
 
   // Check if connected then handle the connected magic
   if (validateWiFi(milliseconds)) {

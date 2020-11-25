@@ -29,9 +29,9 @@ class Sunrise {
 
     void Off();
 
-    void FastToggle();
+    bool FastToggle();
 
-    void Toggle();
+    bool Toggle();
 
     void SetValue(int r, int g, int b);
     

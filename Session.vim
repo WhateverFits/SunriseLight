@@ -20,47 +20,55 @@ set backspace=indent,eol,start
 set completefunc=youcompleteme#CompleteFunc
 set completeopt=preview,menuone
 set cpoptions=aAceFsB
+set expandtab
 set fileencodings=ucs-bom,utf-8,default,latin1
+set guifont=JetBrains\ Mono\ 10
 set helplang=en
 set nomodeline
 set mouse=a
 set printoptions=paper:letter
 set ruler
-set runtimepath=~/.vim,/var/lib/vim/addons,/usr/share/vim/vimfiles,/usr/share/vim/vim80,/usr/share/vim/vimfiles/after,/var/lib/vim/addons/after,~/.vim/after,~/dev/tabnine-vim
-set shortmess=filnxtToOc
+set runtimepath=~/.vim,/var/lib/vim/addons,/etc/vim,/usr/share/vim/vimfiles,/usr/share/vim/vim81,/usr/share/vim/vimfiles/after,/etc/vim/after,/var/lib/vim/addons/after,~/.vim/after,~/dev/tabnine-vim
+set shiftwidth=2
+set shortmess=filnxtToOSc
 set suffixes=.bak,~,.swp,.o,.info,.aux,.log,.dvi,.bbl,.blg,.brf,.cb,.ind,.idx,.ilg,.inx,.out,.toc
+set tabstop=2
 set termencoding=utf-8
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
+silent tabonly
 cd ~/dev/SunriseLight
 if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +1 SunriseLight.ino
-badd +0 Config.h
-badd +0 Formatting.h
-badd +0 Sunrise.cpp
-badd +0 Sunrise.h
-badd +0 SunriseLight.h
-badd +0 Webserver.h
 argglobal
-silent! argdel *
+%argdel
 $argadd SunriseLight.ino
 $argadd Config.h
-$argadd Formatting.h
+$argadd SunriseLight.h
 $argadd Sunrise.cpp
 $argadd Sunrise.h
-$argadd SunriseLight.h
 $argadd Webserver.h
+$argadd Formatting.h
 set stal=2
+tabnew
+tabnew
+tabnew
+tabnew
+tabnew
+tabnew
+tabrewind
 edit SunriseLight.ino
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -74,7 +82,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -89,12 +97,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'arduino'
 setlocal filetype=arduino
 endif
@@ -119,7 +128,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -145,8 +154,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -161,32 +172,41 @@ setlocal synmaxcol=3000
 if &syntax != 'arduino'
 setlocal syntax=arduino
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit Config.h
+tabnext
+edit Config.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 2argu
 setlocal keymap=
@@ -201,7 +221,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -216,12 +236,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'cpp'
 setlocal filetype=cpp
 endif
@@ -246,7 +267,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -272,8 +293,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -288,32 +311,41 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit Formatting.h
+tabnext
+edit SunriseLight.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 3argu
 setlocal keymap=
@@ -328,7 +360,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -343,12 +375,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'cpp'
 setlocal filetype=cpp
 endif
@@ -373,7 +406,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -399,8 +432,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -415,32 +450,41 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit Sunrise.cpp
+tabnext
+edit Sunrise.cpp
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 4argu
 setlocal keymap=
@@ -455,7 +499,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -470,12 +514,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'cpp'
 setlocal filetype=cpp
 endif
@@ -500,7 +545,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -526,8 +571,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -542,32 +589,41 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit Sunrise.h
+tabnext
+edit Sunrise.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 5argu
 setlocal keymap=
@@ -582,7 +638,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -597,12 +653,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'cpp'
 setlocal filetype=cpp
 endif
@@ -627,7 +684,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -653,8 +710,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -669,32 +728,41 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit SunriseLight.h
+tabnext
+edit Webserver.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 6argu
 setlocal keymap=
@@ -709,7 +777,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -724,12 +792,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'cpp'
 setlocal filetype=cpp
 endif
@@ -754,7 +823,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -780,8 +849,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -796,32 +867,41 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 1
 normal! 0
-tabedit Webserver.h
+tabnext
+edit Formatting.h
 set splitbelow splitright
 set nosplitbelow
 set nosplitright
 wincmd t
-set winminheight=1 winheight=1 winminwidth=1 winwidth=1
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
 argglobal
 7argu
 setlocal keymap=
@@ -836,7 +916,7 @@ setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
 setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
+setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
@@ -851,12 +931,13 @@ setlocal cryptmethod=
 setlocal nocursorbind
 setlocal nocursorcolumn
 setlocal nocursorline
+setlocal cursorlineopt=both
 setlocal define=
 setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal noexpandtab
+setlocal expandtab
 if &filetype != 'cpp'
 setlocal filetype=cpp
 endif
@@ -881,7 +962,7 @@ setlocal imsearch=-1
 setlocal include=
 setlocal includeexpr=
 setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
+setlocal indentkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=
@@ -907,8 +988,10 @@ setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
-setlocal shiftwidth=8
+setlocal scrolloff=-1
+setlocal shiftwidth=2
 setlocal noshortname
+setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
 setlocal softtabstop=0
@@ -923,21 +1006,26 @@ setlocal synmaxcol=3000
 if &syntax != 'cpp'
 setlocal syntax=cpp
 endif
-setlocal tabstop=8
+setlocal tabstop=2
 setlocal tagcase=
+setlocal tagfunc=
 setlocal tags=
-setlocal termkey=
-setlocal termsize=
+setlocal termwinkey=
+setlocal termwinscroll=10000
+setlocal termwinsize=
 setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
+setlocal varsofttabstop=
+setlocal vartabstop=
+setlocal wincolor=
 setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 18) / 36)
+let s:l = 1 - ((0 * winheight(0) + 22) / 44)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -945,17 +1033,25 @@ normal! zt
 normal! 0
 tabnext 1
 set stal=1
-if exists('s:wipebuf')
+badd +1 SunriseLight.ino
+badd +0 Config.h
+badd +0 SunriseLight.h
+badd +0 Sunrise.cpp
+badd +0 Sunrise.h
+badd +0 Webserver.h
+badd +0 Formatting.h
+if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif
 unlet! s:wipebuf
-set winheight=1 winwidth=20 shortmess=filnxtToOc
+set winheight=1 winwidth=20 shortmess=filnxtToOSc
 set winminheight=1 winminwidth=1
 let s:sx = expand("<sfile>:p:r")."x.vim"
 if file_readable(s:sx)
   exe "source " . fnameescape(s:sx)
 endif
 let &so = s:so_save | let &siso = s:siso_save
+nohlsearch
 doautoall SessionLoadPost
 unlet SessionLoad
 " vim: set ft=vim :

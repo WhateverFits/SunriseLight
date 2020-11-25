@@ -1,0 +1,12 @@
+#!/bin/bash
+/home/linuxbrew/.linuxbrew/bin/arduino-cli compile --build-properties "build.extra_flags=-DESP8266 -DCONFAQUARIUM" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
+scp /home/sean/dev/SunriseLight/build/esp8266.esp8266.d1_mini/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/Aquarium.ino.bin
+mosquitto_pub -h pi4 -t "home/aquarium/control" -m "Update"
+
+/home/linuxbrew/.linuxbrew/bin/arduino-cli compile --build-properties "build.extra_flags=-DESP8266 -DCONFBEDROOM" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
+scp /home/sean/dev/SunriseLight/build/esp8266.esp8266.d1_mini/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/BedroomClock.ino.bin
+mosquitto_pub -h pi4 -t "home/bedroomclock/control" -m "Update"
+
+/home/linuxbrew/.linuxbrew/bin/arduino-cli compile --build-properties "build.extra_flags=-DESP8266 -DCONFOFFICE" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
+scp /home/sean/dev/SunriseLight/build/esp8266.esp8266.d1_mini/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/OfficeClock.ino.bin
+mosquitto_pub -h pi4 -t "home/officeclock/control" -m "Update"
