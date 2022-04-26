@@ -29,6 +29,9 @@
 #define CLOCKBRIGHT 7
 #endif
 
+#define LED2_PIN D8
+#define BUTTON2_PIN D4
+
 #define LOCALUDPPORT 8888
 #define LED_PIN D0
 #define NEO_PIN D7
@@ -42,6 +45,7 @@
 #define MQTT_CHANNEL_PUB "home/" DNSNAME "/state"
 #define MQTT_CHANNEL_SUB "home/" DNSNAME "/control"
 #define MQTT_CHANNEL_LOG "home/" DNSNAME "/log"
+#define MQTT_CHANNEL_SCENE "home/scene/goodnight"
 #define MQTT_USER "clockuser"
 #define MQTT_PASSWORD "clockuser"
 #define UPDATE_URL "http://pi4/cgi-bin/test.rb"

@@ -1,5 +1,5 @@
 #include <ArduinoJson.h>
-#include <Time.h>
+#include <TimeLib.h>
 #include <TimeLib.h>
 #include <TimeAlarms.h>
 #include <Timezone.h>
@@ -47,8 +47,10 @@ WiFiUDP Udp;
 
 // Control button
 EasyButton button(BUTTON_PIN);
+EasyButton button2(BUTTON2_PIN);
 // LED on control button
 auto led = JLed(LED_PIN);
+auto led2 = JLed(LED2_PIN);
 
 // TimeZone rules
 TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
@@ -181,9 +183,10 @@ void setupAlarms() {
 
 void getSunriseSunsetTimes() {
   mqttLog("getSunriseSunsetTimes - Enter");
-  WiFiClient client;
-  const int httpPort = 80;
+  WiFiClientSecure client;
+  const int httpPort = 443;
   const char* host = "api.sunrise-sunset.org";
+  client.setInsecure();
   if (!client.connect(host, httpPort)) {
     Serial.println("connection failed");
     mqttLog("connection failed");
@@ -322,6 +325,16 @@ void onPressedForDuration() {
   } else {
     tm1637.display("SET ");
   }
+
+  // Reset the clock timer so that the RISE or SET displays for a second
+  lastTimeClock = millis();
+}
+
+// When the button is short pressed, execute this
+void onPressed2() {
+  led2.Off();
+  led2.Blink(200, 800).Repeat(1);
+  mqttClient.publish(MQTT_CHANNEL_SCENE, "On", true);
 
   // Reset the clock timer so that the RISE or SET displays for a second
   lastTimeClock = millis();
@@ -554,7 +567,7 @@ void updateFinished() {
 
 void updateProgress(int cur, int total) {
   Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
-  tm1637.dispNumber(cur * 100 / total);
+  tm1637.display(cur * 100 / total);
 
   for (int i = 0; i < (LEDS * cur / total); i++) 
     sunrise.SetPixel(i, 0, 0, 50);
@@ -668,7 +681,7 @@ void setup() {
   // Connect to the clock
   tm1637.init();
   tm1637.setBrightness(CLOCKBRIGHT);
-  tm1637.dispNumber(0);
+  tm1637.display(0);
 
   rtc.begin();
 
@@ -677,7 +690,7 @@ void setup() {
     Serial.print("rtc: ");
     Serial.println(utc);
     local = myTZ.toLocal(utc, &tcr);
-    tm1637.dispNumber(hour(local) * 100 + minute(local));
+    tm1637.display(hour(local) * 100 + minute(local));
   } else {
     Serial.println("rtc: lost power.");
   }
@@ -693,6 +706,9 @@ void setup() {
   button.onPressedFor(1000, onPressedForDuration);
   led.Off();
 
+  button2.onPressed(onPressed2);
+  led2.Off();
+
   mqttClientId = generateMqttClientId();
 
   ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
@@ -707,13 +723,19 @@ void loop() {
 
   Alarm.delay(0);
   button.read();
+  button2.read();
   sunrise.Update();
 
   if (button.isPressed() && !led.IsRunning()) {
     led.On();
   }   
 
+  if (button2.isPressed() && !led2.IsRunning()) {
+    led2.On();
+  }   
+
   led.Update();
+  led2.Update();
 
   long milliseconds = millis();
 
@@ -741,7 +763,7 @@ void loop() {
   if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
     //Serial.println("Sending time to LED 7 Segment");
     lastTimeClock = milliseconds;
-    tm1637.dispNumber(hour(local) * 100 + minute(local));
+    tm1637.display(hour(local) * 100 + minute(local));
     tm1637.switchColon();
     lastTimeClock = milliseconds;
   }

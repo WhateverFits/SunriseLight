@@ -1,5 +1,5 @@
 #include <Adafruit_NeoPixel.h>
-#include <Time.h>
+#include <TimeLib.h>
 #include "Sunrise.h"
 #include "SunriseLight.h"
 
