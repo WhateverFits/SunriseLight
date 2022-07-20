@@ -490,6 +490,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     switch (ret) {
       case HTTP_UPDATE_FAILED:
         Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+        mqttLog(ESPhttpUpdate.getLastErrorString());
         break;
 
       case HTTP_UPDATE_NO_UPDATES:
@@ -567,7 +568,7 @@ void updateFinished() {
 
 void updateProgress(int cur, int total) {
   Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
-  tm1637.display(cur * 100 / total);
+  clockDisplayRight(cur * 100 / total);
 
   for (int i = 0; i < (LEDS * cur / total); i++) 
     sunrise.SetPixel(i, 0, 0, 50);
@@ -672,6 +673,18 @@ void validateMqtt(long milliseconds) {
   }
 }
 
+void clockDisplayRight(int value) {
+  String temp = String(value);
+  if (value < 10) {
+    temp = "   " + temp;
+  } else if (value < 100) {
+    temp = "  " + temp;
+  } else if (value < 1000){
+    temp = " " + temp;
+  }
+  tm1637.display(temp);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -681,7 +694,8 @@ void setup() {
   // Connect to the clock
   tm1637.init();
   tm1637.setBrightness(CLOCKBRIGHT);
-  tm1637.display(0);
+  clockDisplayRight(0);
+  tm1637.colonOff();
 
   rtc.begin();
 
@@ -690,7 +704,7 @@ void setup() {
     Serial.print("rtc: ");
     Serial.println(utc);
     local = myTZ.toLocal(utc, &tcr);
-    tm1637.display(hour(local) * 100 + minute(local));
+    clockDisplayRight(hour(local) * 100 + minute(local));
   } else {
     Serial.println("rtc: lost power.");
   }
@@ -763,7 +777,7 @@ void loop() {
   if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
     //Serial.println("Sending time to LED 7 Segment");
     lastTimeClock = milliseconds;
-    tm1637.display(hour(local) * 100 + minute(local));
+    clockDisplayRight(hour(local) * 100 + minute(local));
     tm1637.switchColon();
     lastTimeClock = milliseconds;
   }
