@@ -1,6 +1,5 @@
 #include <ArduinoJson.h>
 #include <TimeLib.h>
-#include <TimeLib.h>
 #include <TimeAlarms.h>
 #include <Timezone.h>
 #include <ESP8266WiFi.h>
@@ -21,8 +20,8 @@
 #include "Webserver.h"
 
 // MQTT method headers
-void mqttPublish(const char* status);
-void mqttCallback(char* topic, byte* payload, unsigned int length);
+void mqttPublish(const char *status);
+void mqttCallback(char *topic, byte *payload, unsigned int length);
 
 // Alarm header
 void setupAlarms();
@@ -31,7 +30,7 @@ void setupAlarms();
 TM1637 tm1637(CLOCK_DIO, CLOCK_CLK);
 
 // Sunrise
-Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, mqttPublish);
+Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, MAXBRIGHTNESS, mqttPublish);
 
 // Web Server
 Webserver server = Webserver(80, &sunrise, setupAlarms);
@@ -53,8 +52,8 @@ auto led = JLed(LED_PIN);
 auto led2 = JLed(LED2_PIN);
 
 // TimeZone rules
-TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420};    //Daylight time = UTC - 7 hours
-TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};     //Standard time = UTC - 8 hours
+TimeChangeRule myDST = {"PDT", Second, Sun, Mar, 2, -420}; // Daylight time = UTC - 7 hours
+TimeChangeRule mySTD = {"PST", First, Sun, Nov, 2, -480};  // Standard time = UTC - 8 hours
 Timezone myTZ(myDST, mySTD);
 
 // Locals
@@ -70,73 +69,78 @@ int moonSetIndex = -1;
 
 bool connectedOnce = false;
 
-String mqttClientId; 
-long lastReconnectAttempt = 0; 
+String mqttClientId;
+long lastReconnectAttempt = 0;
 
 int ntpRetryCount = 3;
 int ntpRetry = 0;
 long rtcCount = RTCSTALECOUNT;
 int displayBrightness = CLOCKBRIGHT;
 
-TimeChangeRule *tcr;        //pointer to the time change rule, use to get TZ abbrev
+TimeChangeRule *tcr; // pointer to the time change rule, use to get TZ abbrev
 
-void MorningAlarm() {
+void MorningAlarm()
+{
   bool enabled;
   EEPROM.get(ENABLEDINDEX, enabled);
-  if (enabled) 
+  if (enabled)
   {
     Serial.println("Good morning!");
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
-    printTime(local, tcr -> abbrev);
+    printTime(local, tcr->abbrev);
     sunrise.StartSunrise();
   }
 }
 
-void EveningAlarm() {
+void EveningAlarm()
+{
   bool enabled;
   EEPROM.get(ENABLEDINDEX, enabled);
-  if (enabled) 
+  if (enabled)
   {
     Serial.println("Good evening!");
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
-    printTime(local, tcr -> abbrev);
+    printTime(local, tcr->abbrev);
     sunrise.StartSunset();
   }
 }
 
-void MoonAlarm() {
+void MoonAlarm()
+{
   bool enabled;
   bool moonenabled;
   EEPROM.get(ENABLEDINDEX, enabled);
   EEPROM.get(MOONENABLEDINDEX, moonenabled);
-  if (enabled && moonenabled) 
+  if (enabled && moonenabled)
   {
     Serial.println("Watch out for wherewolves!");
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
-    printTime(local, tcr -> abbrev);
+    printTime(local, tcr->abbrev);
     sunrise.StartMoonrise();
   }
 }
 
-void MoonSetAlarm() {
+void MoonSetAlarm()
+{
   bool enabled;
   bool moonenabled;
   EEPROM.get(ENABLEDINDEX, enabled);
   EEPROM.get(MOONENABLEDINDEX, moonenabled);
-  if (enabled && moonenabled) 
+  if (enabled && moonenabled)
   {
     Serial.println("Whew!");
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
-    printTime(local, tcr -> abbrev);
+    printTime(local, tcr->abbrev);
     sunrise.StartMoonset();
   }
 }
 
-int createAlarmUTC(int h, int m, OnTick_t onTickHandler) {
+int createAlarmUTC(int h, int m, OnTick_t onTickHandler)
+{
   TimeElements t;
   t.Second = 0;
   t.Minute = m;
@@ -152,7 +156,8 @@ int createAlarmUTC(int h, int m, OnTick_t onTickHandler) {
   return Alarm.alarmOnce(hour(utc), m, 0, onTickHandler);
 }
 
-int createAlarm(int h, int m, OnTick_t onTickHandler) {
+int createAlarm(int h, int m, OnTick_t onTickHandler)
+{
   TimeElements t;
   t.Second = 0;
   t.Minute = m;
@@ -171,9 +176,11 @@ int createAlarm(int h, int m, OnTick_t onTickHandler) {
   return Alarm.alarmOnce(hour(utc), m, 0, onTickHandler);
 }
 
-void setupAlarms() {
+void setupAlarms()
+{
   mqttLog("setupAlarms - Enter");
-  for (int i = 0; i < dtNBR_ALARMS; i++) {
+  for (int i = 0; i < dtNBR_ALARMS; i++)
+  {
     Alarm.free(i);
   }
 
@@ -181,13 +188,15 @@ void setupAlarms() {
   mqttLog("setupAlarms - Exit");
 }
 
-void getSunriseSunsetTimes() {
+void getSunriseSunsetTimes()
+{
   mqttLog("getSunriseSunsetTimes - Enter");
   WiFiClientSecure client;
   const int httpPort = 443;
-  const char* host = "api.sunrise-sunset.org";
+  const char *host = "api.sunrise-sunset.org";
   client.setInsecure();
-  if (!client.connect(host, httpPort)) {
+  if (!client.connect(host, httpPort))
+  {
     Serial.println("connection failed");
     mqttLog("connection failed");
     return;
@@ -196,25 +205,29 @@ void getSunriseSunsetTimes() {
   // We now create a URI for the request
   String url = "/json?lat=38.581572&lng=-121.494400&formatted=0";
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-      "Host: " + host + "\r\n" +
-      "Connection: close\r\n\r\n");
+               "Host: " + host + "\r\n" +
+               "Connection: close\r\n\r\n");
   unsigned long timeout = millis();
-  while (client.available() == 0) {
-    if (millis() - timeout > 5000) {
+  while (client.available() == 0)
+  {
+    if (millis() - timeout > 5000)
+    {
       Serial.println(">>> Client Timeout !");
       client.stop();
       return;
     }
   }
 
-  while (client.available()) {
+  while (client.available())
+  {
     String line = client.readStringUntil('\r');
     line = line.substring(1);
-    if (line[0] == '{') {
+    if (line[0] == '{')
+    {
       mqttLog("Received sunrise");
       StaticJsonDocument<1000> doc;
       DeserializationError err = deserializeJson(doc, line.substring(line.indexOf(':') + 1, line.lastIndexOf(',')));
-      //JsonObject& root = jsonBuffer.parseObject(line.substring(line.indexOf(':') + 1, line.lastIndexOf(',')));
+      // JsonObject& root = jsonBuffer.parseObject(line.substring(line.indexOf(':') + 1, line.lastIndexOf(',')));
       String sunrise = doc["sunrise"];
       String sunset = doc["sunset"];
 
@@ -240,7 +253,7 @@ void getSunriseSunsetTimes() {
       {
         morningIndex = createAlarmUTC(sunriseHour.toInt(), sunriseMin.toInt(), MorningAlarm);
         Serial.println("Sunrise alarm:" + sunriseHour + ":" + sunriseMin);
-      } 
+      }
       else
       {
         int today = weekday(local);
@@ -265,10 +278,12 @@ void getSunriseSunsetTimes() {
 
       // Make moonrise
       sunsetMinInt += 20;
-      if (sunsetMinInt > 60) {
+      if (sunsetMinInt > 60)
+      {
         sunsetMinInt -= 60;
         sunsetHourInt++;
-        if (sunsetHourInt == 24) {
+        if (sunsetHourInt == 24)
+        {
           sunsetHourInt = 0;
         }
       }
@@ -279,10 +294,12 @@ void getSunriseSunsetTimes() {
 
       // Make moonset
       sunsetMinInt += 30;
-      if (sunsetMinInt > 60) {
+      if (sunsetMinInt > 60)
+      {
         sunsetMinInt -= 60;
         sunsetHourInt++;
-        if (sunsetHourInt == 24) {
+        if (sunsetHourInt == 24)
+        {
           sunsetHourInt = 0;
         }
       }
@@ -300,13 +317,17 @@ void getSunriseSunsetTimes() {
 }
 
 // When the button is short pressed, execute this
-void onPressed() {
+void onPressed()
+{
   bool sunrising = sunrise.Toggle();
   led.Off();
   led.Blink(200, 800).Repeat(1);
-  if (sunrising) {
+  if (sunrising)
+  {
     tm1637.display("RISE");
-  } else {
+  }
+  else
+  {
     tm1637.display("SET ");
   }
 
@@ -315,14 +336,18 @@ void onPressed() {
 }
 
 // When the button is held for 1000 ms, execute this
-void onPressedForDuration() {
+void onPressedForDuration()
+{
   Serial.println("Fast Toggle from long press");
   bool sunrising = sunrise.FastToggle();
   led.Off();
   led.Blink(200, 200).Repeat(5);
-  if (sunrising) {
+  if (sunrising)
+  {
     tm1637.display("RISE");
-  } else {
+  }
+  else
+  {
     tm1637.display("SET ");
   }
 
@@ -331,7 +356,8 @@ void onPressedForDuration() {
 }
 
 // When the button is short pressed, execute this
-void onPressed2() {
+void onPressed2()
+{
   led2.Off();
   led2.Blink(200, 800).Repeat(1);
   mqttClient.publish(MQTT_CHANNEL_SCENE, "On", true);
@@ -340,14 +366,18 @@ void onPressed2() {
   lastTimeClock = millis();
 }
 
-void displayBright() {
-  if (++displayBrightness > 7) displayBrightness = 7;
+void displayBright()
+{
+  if (++displayBrightness > 7)
+    displayBrightness = 7;
   mqttLog("displayBright: " + String(displayBrightness));
   tm1637.setBrightness(displayBrightness);
 }
 
-void displayDim() {
-  if (--displayBrightness < 1) displayBrightness = 1;
+void displayDim()
+{
+  if (--displayBrightness < 1)
+    displayBrightness = 1;
   mqttLog("displayDim: " + String(displayBrightness));
   tm1637.setBrightness(displayBrightness);
 }
@@ -355,40 +385,41 @@ void displayDim() {
 // send an NTP request to the time server at the given address
 void sendNTPpacket(IPAddress &address)
 {
-  byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
+  byte packetBuffer[NTP_PACKET_SIZE]; // buffer to hold incoming & outgoing packets
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
   // (see URL above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  packetBuffer[0] = 0b11100011; // LI, Version, Mode
+  packetBuffer[1] = 0;          // Stratum, or type of clock
+  packetBuffer[2] = 6;          // Polling Interval
+  packetBuffer[3] = 0xEC;       // Peer Clock Precision
   // 8 bytes of zero for Root Delay & Root Dispersion
-  packetBuffer[12]  = 49;
-  packetBuffer[13]  = 0x4E;
-  packetBuffer[14]  = 49;
-  packetBuffer[15]  = 52;
+  packetBuffer[12] = 49;
+  packetBuffer[13] = 0x4E;
+  packetBuffer[14] = 49;
+  packetBuffer[15] = 52;
   // all NTP fields have been given values, now
   // you can send a packet requesting a timestamp:
-  Udp.beginPacket(address, 123); //NTP requests are to port 123
-  //Udp.beginMulticast(address, 123); //NTP requests are to port 123
+  Udp.beginPacket(address, 123); // NTP requests are to port 123
+  // Udp.beginMulticast(address, 123); //NTP requests are to port 123
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
 }
 
-String IpAddress2String(const IPAddress& ipAddress)
+String IpAddress2String(const IPAddress &ipAddress)
 {
-  return String(ipAddress[0]) + String(".") +\
-    String(ipAddress[1]) + String(".") +\
-    String(ipAddress[2]) + String(".") +\
-    String(ipAddress[3])  ;
+  return String(ipAddress[0]) + String(".") +
+         String(ipAddress[1]) + String(".") +
+         String(ipAddress[2]) + String(".") +
+         String(ipAddress[3]);
 }
 
 time_t getNtpTime()
 {
   // Check if we have a time and it isn't too stale.
-  if (!rtc.lostPower() && rtcCount < RTCSTALECOUNT) {
+  if (!rtc.lostPower() && rtcCount < RTCSTALECOUNT)
+  {
     rtcCount++;
     Serial.println("Returning RTC value");
     long u = rtc.now().unixtime();
@@ -397,9 +428,10 @@ time_t getNtpTime()
     return u;
   }
 
-
-  if (wifiMulti.run() == WL_CONNECTED) {
-    while (Udp.parsePacket() > 0) ; // discard any previously received packets
+  if (wifiMulti.run() == WL_CONNECTED)
+  {
+    while (Udp.parsePacket() > 0)
+      ; // discard any previously received packets
     // Fall back to using the global NTP pool server in case we cannot connect to internal NTP server
     if (ntpRetry > 1)
       WiFi.hostByName(ntpServerName, timeServer);
@@ -407,22 +439,24 @@ time_t getNtpTime()
     Serial.println(IpAddress2String(timeServer));
     sendNTPpacket(timeServer);
     uint32_t beginWait = millis();
-    byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
-    while (millis() - beginWait < 1500) {
+    byte packetBuffer[NTP_PACKET_SIZE]; // buffer to hold incoming & outgoing packets
+    while (millis() - beginWait < 1500)
+    {
       int size = Udp.parsePacket();
-      if (size >= NTP_PACKET_SIZE) {
+      if (size >= NTP_PACKET_SIZE)
+      {
         Serial.println("Receive NTP Response");
-        Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
+        Udp.read(packetBuffer, NTP_PACKET_SIZE); // read packet into the buffer
         unsigned long secsSince1900;
         // convert four bytes starting at location 40 to a long integer
-        secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
+        secsSince1900 = (unsigned long)packetBuffer[40] << 24;
         secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
         secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
         secsSince1900 |= (unsigned long)packetBuffer[43];
         randomSeed(secsSince1900);
         // Make sure we chill a little
         setSyncInterval(200);
-        unsigned long calcTime = secsSince1900 - 2208988800UL;// + timeZone * SECS_PER_HOUR;
+        unsigned long calcTime = secsSince1900 - 2208988800UL; // + timeZone * SECS_PER_HOUR;
         rtc.adjust(DateTime(calcTime));
         DateTime timeNow = rtc.now();
         long u = timeNow.unixtime();
@@ -430,14 +464,14 @@ time_t getNtpTime()
         Serial.println(u);
         Serial.print("ntp: ");
         Serial.println(calcTime);
-        // Reset the RTC stale counter. 
+        // Reset the RTC stale counter.
         rtcCount = 0;
         return calcTime;
       }
     }
   }
   Serial.println("No NTP Response :-(");
-  if (ntpRetry < ntpRetryCount) 
+  if (ntpRetry < ntpRetryCount)
   {
     ntpRetry++;
     return getNtpTime();
@@ -446,10 +480,13 @@ time_t getNtpTime()
   // We couldn't connect so we are gonna try harder!
   Serial.println("NTP n");
   setSyncInterval(5);
-  if (!rtc.lostPower()) {
+  if (!rtc.lostPower())
+  {
     Serial.println("NTP o");
     return rtc.now().unixtime(); // return now if unable to get the time so we just get our RTC's time.
-  } else {
+  }
+  else
+  {
     Serial.println("NTP p");
     return now(); // return now if unable to get the time so we just get our drifted internal time instead of wrong time.
   }
@@ -457,61 +494,83 @@ time_t getNtpTime()
 
 // The callback when an MQTT message is received. We only listen to one topic (control)
 // so we only pay attenttion to the message/payload/action.
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
+void mqttCallback(char *topic, byte *payload, unsigned int length)
+{
   Serial.printf("Inside mqtt callback: %s\n", topic);
   Serial.println(length);
 
   // This payload can be the entire buffer. Make sure to only use the provided length of it.
-  String action = (char*)payload;
+  String action = (char *)payload;
   action = action.substring(0, length);
   Serial.println(action);
 
-  if (action == "Sunrise") sunrise.StartSunrise();
-  if (action == "Sunset") sunrise.StartSunset();
-  if (action == "Moonrise") sunrise.StartMoonrise();
-  if (action == "Moonset") sunrise.StartMoonset();
-  if (action == "On") sunrise.On();
-  if (action == "Off") sunrise.Off();
-  if (action == "DisplayBright") displayBright();
-  if (action == "DisplayDim") displayDim();
-  if (action == "FastToggle") {
+  if (action == "Sunrise")
+    sunrise.StartSunrise();
+  if (action == "Sunset")
+    sunrise.StartSunset();
+  if (action == "Moonrise")
+    sunrise.StartMoonrise();
+  if (action == "Moonset")
+    sunrise.StartMoonset();
+  if (action == "On")
+    sunrise.On();
+  if (action == "Off")
+    sunrise.Off();
+  if (action == "DisplayBright")
+    displayBright();
+  if (action == "DisplayDim")
+    displayDim();
+  if (action == "FastToggle")
+  {
     bool sunrising = sunrise.FastToggle();
-    if (sunrising) {
+    if (sunrising)
+    {
       tm1637.display("RISE");
-    } else {
+    }
+    else
+    {
       tm1637.display("SET ");
     }
     // Reset the clock timer so that the RISE or SET displays for a second
     lastTimeClock = millis();
   }
-  if (action == "Update") {
+  if (action == "Update")
+  {
     WiFiClient updateWiFiClient;
     t_httpUpdate_return ret = ESPhttpUpdate.update(updateWiFiClient, UPDATE_URL);
-    switch (ret) {
-      case HTTP_UPDATE_FAILED:
-        Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-        mqttLog(ESPhttpUpdate.getLastErrorString());
-        break;
+    switch (ret)
+    {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+      mqttLog(ESPhttpUpdate.getLastErrorString());
+      break;
 
-      case HTTP_UPDATE_NO_UPDATES:
-        Serial.println("HTTP_UPDATE_NO_UPDATES");
-        break;
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("HTTP_UPDATE_NO_UPDATES");
+      break;
 
-      case HTTP_UPDATE_OK:
-        Serial.println("HTTP_UPDATE_OK");
-        break;
+    case HTTP_UPDATE_OK:
+      Serial.println("HTTP_UPDATE_OK");
+      break;
     }
+  }
+  long value = action.toInt();
+  if (value > 0 && value <= 100) {
+    int colorValue = (int)((float)MAXBRIGHTNESS * (float)value / 100.0);
+    sunrise.SetValue(colorValue, colorValue, colorValue);
   }
 }
 
 // Send out the provided message in JSON format to home/DNSNAME/state
-void mqttPublish(const char* status) {
-  if (mqttClient.connected()) {
+void mqttPublish(const char *status)
+{
+  if (mqttClient.connected())
+  {
     DynamicJsonDocument mqttDoc(1024);
     mqttDoc["Status"] = status;
     time_t utc = now();
     time_t local = myTZ.toLocal(utc, &tcr);
-    mqttDoc["Date"] = formatTime(local, tcr -> abbrev);
+    mqttDoc["Date"] = formatTime(local, tcr->abbrev);
     mqttDoc["Percent"] = sunrise.GetPercent();
     mqttDoc["Value"] = sunrise.GetValue();
     char buffer[512];
@@ -520,23 +579,28 @@ void mqttPublish(const char* status) {
   }
 }
 
-void mqttLog(const char* status) {
+void mqttLog(const char *status)
+{
   Serial.println(status);
-  if (mqttClient.connected()) {
+  if (mqttClient.connected())
+  {
     mqttClient.publish(MQTT_CHANNEL_LOG, status, true);
   }
 }
 
-void mqttLog(String status) {
+void mqttLog(String status)
+{
   char buf[256];
   status.toCharArray(buf, 256);
   mqttLog(buf);
 }
 
-boolean mqttReconnect() {
+boolean mqttReconnect()
+{
   char buf[100];
   mqttClientId.toCharArray(buf, 100);
-  if (mqttClient.connect(buf, MQTT_USER, MQTT_PASSWORD)) {
+  if (mqttClient.connect(buf, MQTT_USER, MQTT_PASSWORD))
+  {
     mqttClient.subscribe(MQTT_CHANNEL_SUB);
     Serial.println("MQTT connected");
   }
@@ -544,7 +608,8 @@ boolean mqttReconnect() {
   return mqttClient.connected();
 }
 
-String generateMqttClientId() {
+String generateMqttClientId()
+{
   char buffer[4];
   uint8_t macAddr[6];
   WiFi.macAddress(macAddr);
@@ -556,50 +621,57 @@ String generateMqttClientId() {
 #endif
 }
 
-void updateStarted() {
+void updateStarted()
+{
   Serial.println("CALLBACK:  HTTP update process started");
   sunrise.Off();
 }
 
-void updateFinished() {
+void updateFinished()
+{
   Serial.println("CALLBACK:  HTTP update process finished");
   sunrise.SetValue(0, 50, 0);
 }
 
-void updateProgress(int cur, int total) {
+void updateProgress(int cur, int total)
+{
   Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
   clockDisplayRight(cur * 100 / total);
 
-  for (int i = 0; i < (LEDS * cur / total); i++) 
+  for (int i = 0; i < (LEDS * cur / total); i++)
     sunrise.SetPixel(i, 0, 0, 50);
   sunrise.StripShow();
 }
 
-void updateError(int err) {
+void updateError(int err)
+{
   Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
 }
 
-void WiFiEvent(WiFiEvent_t event) {
+void WiFiEvent(WiFiEvent_t event)
+{
   Serial.printf("[WiFi-event] event: %d\n", event);
 
-  switch(event) {
-    case WIFI_EVENT_STAMODE_GOT_IP:
-      Serial.println("WiFi connected");
-      Serial.println("IP address: ");
-      Serial.println(WiFi.localIP());
-      onConnect();
-      break;
-    case WIFI_EVENT_STAMODE_DISCONNECTED:
-      Serial.println("WiFi lost connection");
-      WiFi.disconnect();
-      connectedOnce = false;
-      delay(500);
-      wifiMulti.run();
-      break;
+  switch (event)
+  {
+  case WIFI_EVENT_STAMODE_GOT_IP:
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+    onConnect();
+    break;
+  case WIFI_EVENT_STAMODE_DISCONNECTED:
+    Serial.println("WiFi lost connection");
+    WiFi.disconnect();
+    connectedOnce = false;
+    delay(500);
+    wifiMulti.run();
+    break;
   }
 }
 
-void onConnect() {
+void onConnect()
+{
   Serial.print("Connected: ");
   Serial.println(WiFi.localIP());
   connectedOnce = true;
@@ -607,10 +679,11 @@ void onConnect() {
   setSyncProvider(getNtpTime);
 }
 
-void setupWiFi(){
+void setupWiFi()
+{
   WiFi.disconnect();
   delay(1000);
-  //WiFi.onEvent(WiFiEvent);
+  // WiFi.onEvent(WiFiEvent);
   WiFi.mode(WIFI_STA);
 #ifdef DNSNAME
   WiFi.hostname(DNSNAME);
@@ -622,23 +695,30 @@ void setupWiFi(){
   WiFi.hostname("SunriseLight" + String(buffer));
 #endif
 
-  for (int i=0; i < wifiCount; i++) {
+  for (int i = 0; i < wifiCount; i++)
+  {
     wifiMulti.addAP(ssids[i], passs[i]);
   }
   Serial.println("Connecting");
   wifiMulti.run();
-  //WiFi.begin(ssids[0], passs[0]);
+  // WiFi.begin(ssids[0], passs[0]);
 }
 
-bool validateWiFi(long milliseconds) {
-  //return connectedOnce;
-  // Update WiFi status. Take care of rollover
-  if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
-    if (wifiMulti.run() != WL_CONNECTED) {
+bool validateWiFi(long milliseconds)
+{
+  // return connectedOnce;
+  //  Update WiFi status. Take care of rollover
+  if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock)
+  {
+    if (wifiMulti.run() != WL_CONNECTED)
+    {
       Serial.println("Disconnected");
       connectedOnce = false;
-    } else {
-      if (!connectedOnce) {
+    }
+    else
+    {
+      if (!connectedOnce)
+      {
         Serial.print("Connected late to ");
         Serial.println(WiFi.SSID());
         onConnect();
@@ -651,41 +731,55 @@ bool validateWiFi(long milliseconds) {
   return connectedOnce;
 }
 
-void validateMqtt(long milliseconds) {
-  if (!mqttClient.connected()) {
-    if (milliseconds - lastReconnectAttempt > 5000 || lastReconnectAttempt == 0 || milliseconds < lastReconnectAttempt) {
+void validateMqtt(long milliseconds)
+{
+  if (!mqttClient.connected())
+  {
+    if (milliseconds - lastReconnectAttempt > 5000 || lastReconnectAttempt == 0 || milliseconds < lastReconnectAttempt)
+    {
       Serial.println("MQTT not connected");
       lastReconnectAttempt = milliseconds;
       Serial.println("MQTT reconnecting");
       // Attempt to reconnect
-      if (mqttReconnect()) {
+      if (mqttReconnect())
+      {
         Serial.println("MQTT reconnected");
       }
     }
 
-    if (milliseconds - lastReconnectAttempt > 60000) {
+    if (milliseconds - lastReconnectAttempt > 60000)
+    {
       Serial.println("MQTT disconnecting WiFi");
       WiFi.disconnect();
       delay(500);
     }
-  } else {
+  }
+  else
+  {
     mqttClient.loop();
   }
 }
 
-void clockDisplayRight(int value) {
+void clockDisplayRight(int value)
+{
   String temp = String(value);
-  if (value < 10) {
+  if (value < 10)
+  {
     temp = "   " + temp;
-  } else if (value < 100) {
+  }
+  else if (value < 100)
+  {
     temp = "  " + temp;
-  } else if (value < 1000){
+  }
+  else if (value < 1000)
+  {
     temp = " " + temp;
   }
   tm1637.display(temp);
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   delay(100);
   Serial.println();
@@ -699,13 +793,16 @@ void setup() {
 
   rtc.begin();
 
-  if (!rtc.lostPower()) {
+  if (!rtc.lostPower())
+  {
     utc = rtc.now().unixtime();
     Serial.print("rtc: ");
     Serial.println(utc);
     local = myTZ.toLocal(utc, &tcr);
     clockDisplayRight(hour(local) * 100 + minute(local));
-  } else {
+  }
+  else
+  {
     Serial.println("rtc: lost power.");
   }
 
@@ -732,21 +829,24 @@ void setup() {
   ESPhttpUpdate.onError(updateError);
 }
 
-void loop() {
-  //wifiMulti.run();
+void loop()
+{
+  // wifiMulti.run();
 
   Alarm.delay(0);
   button.read();
   button2.read();
   sunrise.Update();
 
-  if (button.isPressed() && !led.IsRunning()) {
+  if (button.isPressed() && !led.IsRunning())
+  {
     led.On();
-  }   
+  }
 
-  if (button2.isPressed() && !led2.IsRunning()) {
+  if (button2.isPressed() && !led2.IsRunning())
+  {
     led2.On();
-  }   
+  }
 
   led.Update();
   led2.Update();
@@ -754,19 +854,23 @@ void loop() {
   long milliseconds = millis();
 
   // Check if connected then handle the connected magic
-  if (validateWiFi(milliseconds)) {
+  if (validateWiFi(milliseconds))
+  {
     validateMqtt(milliseconds);
     server.HandleClient();
 
     // Check the time. Set alarms. Take care of rollover
-    if (milliseconds >= lastTime + 7200000 || milliseconds < lastTime || lastTime == 0 ) {
-      printTime(local, tcr -> abbrev);
+    if (milliseconds >= lastTime + 7200000 || milliseconds < lastTime || lastTime == 0)
+    {
+      printTime(local, tcr->abbrev);
       lastTime = milliseconds;
       setupAlarms();
     }
 
     utc = now();
-  } else {
+  }
+  else
+  {
     utc = rtc.now().unixtime();
   }
 
@@ -774,8 +878,9 @@ void loop() {
   local = myTZ.toLocal(utc, &tcr);
 
   // Update clock display. Take care of rollover
-  if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock) {
-    //Serial.println("Sending time to LED 7 Segment");
+  if (milliseconds >= lastTimeClock + 1000 || milliseconds < lastTimeClock)
+  {
+    // Serial.println("Sending time to LED 7 Segment");
     lastTimeClock = milliseconds;
     clockDisplayRight(hour(local) * 100 + minute(local));
     tm1637.switchColon();

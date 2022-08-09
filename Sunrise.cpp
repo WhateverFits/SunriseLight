@@ -4,15 +4,15 @@
 #include "SunriseLight.h"
 
 void Sunrise::sunrise() {
-  if (R < 255) {
+  if (R < _maxBrightness) {
     R++;
     stateChanged = true;
   }
-  if (R > 90 && G < 255) {
+  if (R > 90 && G < _maxBrightness) {
     G++;
     stateChanged = true;
   }
-  if (R > 150 && B < 255) {
+  if (R > 150 && B < _maxBrightness) {
     B++;
     stateChanged = true;
   }
@@ -27,7 +27,7 @@ void Sunrise::sunrise() {
 
     Serial.print("sunrise ");
     Serial.println(GetColor());
-    if (_stateChange && R == 255 && G == 255 && B == 255) {
+    if (_stateChange && R == _maxBrightness && G == _maxBrightness && B == _maxBrightness) {
       _stateChange(GetState());
       workingDelay = _delay;
     }
@@ -65,7 +65,7 @@ void Sunrise::sunset() {
 }
 
 void Sunrise::moonrise() {
-  if (B < 255) {
+  if (B < _maxBrightness) {
     B++;
     stateChanged = true;
   }
@@ -87,7 +87,7 @@ void Sunrise::moonrise() {
   if (stateChanged) {
     Serial.print("moonrise ");
     Serial.println(GetColor());
-    if (_stateChange && R == 80 && G == 80 && B == 255) {
+    if (_stateChange && R == 80 && G == 80 && B == _maxBrightness) {
       _stateChange(GetState());
       workingDelay = _delay;
     }
@@ -160,7 +160,7 @@ void Sunrise::Off() {
 }
 
 void Sunrise::On() {
-  SetValue(255, 255, 255);
+  SetValue(_maxBrightness, _maxBrightness, _maxBrightness);
   showSunrise = true;
   showSunset = false;
   showMoon = false;  
@@ -205,9 +205,10 @@ bool Sunrise::Toggle() {
   return sunrising;
 }
 
-Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin, THandlerFunction stateChange) {
+Sunrise::Sunrise(int Delay, int FastDelay, int NumLeds, int pin, int maxBrightness, THandlerFunction stateChange) {
   _delay = Delay;
   _fastDelay = FastDelay;
+  _maxBrightness = maxBrightness;
   _stateChange = stateChange;
   workingDelay = Delay;
   numLeds = NumLeds;
@@ -280,7 +281,7 @@ const char * Sunrise::GetState() {
 }
 
 float Sunrise::GetPercent() {
-  return ((float)(R + G + B)) / (255.0 * 3.0) * 100.0;
+  return ((float)(R + G + B)) / ((float)_maxBrightness * 3.0) * 100.0;
 }
 
 String Sunrise::GetColor() {

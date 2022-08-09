@@ -11,22 +11,36 @@
 #define LEDDELAY 4000
 #define FASTDELAY 10
 
+#define CONFBEDROOM
+
 #ifdef CONFAQUARIUM
+#define CLOCK_DIO D5
+#define CLOCK_CLK D6
 #define LEDS 60
 #define DNSNAME "aquarium"
 #define CLOCKBRIGHT 1
-#elif CONFBEDROOM
+#define MAXBRIGHTNESS 255
+#elif defined(CONFBEDROOM)
+#define CLOCK_DIO D5
+#define CLOCK_CLK D6
 #define LEDS 60
 #define DNSNAME "bedroomclock"
 #define CLOCKBRIGHT 7
-#elif CONFOFFICE
+#define MAXBRIGHTNESS 200
+#elif defined(CONFOFFICE)
+#define CLOCK_DIO D5
+#define CLOCK_CLK D6
 #define LEDS 60
 #define DNSNAME "officeclock"
 #define CLOCKBRIGHT 1
+#define MAXBRIGHTNESS 255
 #else
 #define LEDS 10
+#define CLOCK_DIO D5
+#define CLOCK_CLK D6
 #define DNSNAME "testcircuit"
 #define CLOCKBRIGHT 7
+#define MAXBRIGHTNESS 255
 #endif
 
 #define LED2_PIN D8
@@ -36,8 +50,6 @@
 #define LED_PIN D0
 #define NEO_PIN D7
 #define BUTTON_PIN D3
-#define CLOCK_DIO D5
-#define CLOCK_CLK D6
 #define WEBCOLORCOMPRESS 100
 #define RTCSTALECOUNT 100
 #define MQTT_SERVER "pi4"
@@ -57,8 +69,8 @@ IPAddress timeServer(192, 168, 1, 1);
 //Then we try the pool.
 const char* ntpServerName = "us.pool.ntp.org";
 
-const char* ssids[] = {"Acrid", "The Ranch-2.4", "MakerHQ", "Milagro"};
-const char* passs[] = {"MyVoiceIsMyPassport", "916-955-0942", "sacramentomaker916", "Milagro123"};
+const char* ssids[] = {"WiFi"};
+const char* passs[] = {"Here"}};
 const int wifiCount = 4;
 const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
 

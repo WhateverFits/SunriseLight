@@ -5,7 +5,7 @@
 class Sunrise {
   public: 
     typedef std::function<void(const char*)> THandlerFunction;
-    Sunrise(int Delay, int FastDelay, int NumLeds, int pin, THandlerFunction stateChange);
+    Sunrise(int Delay, int FastDelay, int NumLeds, int pin, int maxBrightness, THandlerFunction stateChange);
 
     void StartSunrise();
     
@@ -44,6 +44,7 @@ class Sunrise {
     int _delay;
     int _fastDelay;
     int workingDelay;
+    int _maxBrightness;
     int numLeds;
     long startTime;
 	long lastUpdateTime = 0;
