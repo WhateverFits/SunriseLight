@@ -1,2 +1,0 @@
-#!/bin/bash
-/home/linuxbrew/.linuxbrew/bin/arduino-cli compile -b esp8266:esp8266:d1_mini -u -p /dev/ttyUSB0 /home/sean/dev/SunriseLight

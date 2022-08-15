@@ -1,68 +1,63 @@
 #ifndef SUNRISE_H
 #define SUNRISE_H
-#include <Adafruit_NeoPixel.h>
+//#include <Adafruit_NeoPixel.h>
+#include <NeoPatterns.h>
 
-class Sunrise {
-  public: 
-    typedef std::function<void(const char*)> THandlerFunction;
-    Sunrise(int Delay, int FastDelay, int NumLeds, int pin, int maxBrightness, THandlerFunction stateChange);
+class Sunrise
+{
+public:
+  typedef std::function<void(const char *)> THandlerFunction;
+  Sunrise(int Delay, int FastDelay, int NumLeds, int pin, int MaxBrightness, THandlerFunction stateChange);
 
-    void StartSunrise();
-    
-    void StartSunset();
-    
-    void StartMoonrise();
-    
-    void StartMoonset();
+  void StartSunrise(bool fast = false);
 
-    void SetPixel(int pixel, byte r, byte g, byte b);
+  void StartSunset(bool fast = false);
 
-    const char * GetState();
+  void StartMoonrise(bool fast = false);
 
-    float GetPercent();
+  void StartMoonset(bool fast = false);
 
-    String GetColor();
-    
-    void Update();
+  void SetPixel(int pixel, byte r, byte g, byte b);
 
-    void On();
+  const char *GetState();
 
-    void Off();
+  float GetPercent();
 
-    bool FastToggle();
+  String GetColor();
 
-    bool Toggle();
+  void Update();
 
-    void SetValue(int r, int g, int b);
-    
-    unsigned long GetValue();
+  void On();
 
-    void StripShow();
-    
-  protected:
-  private:
-    int _delay;
-    int _fastDelay;
-    int workingDelay;
-    int _maxBrightness;
-    int numLeds;
-    long startTime;
-	long lastUpdateTime = 0;
-    byte R = 0;
-    byte G = 0;
-    byte B = 0; 
-	THandlerFunction _stateChange;
+  void Off();
 
-    bool showSunrise = false;
-    bool showSunset = false;
-    bool showMoon = false;
-	bool stateChanged = false;
+  bool Toggle(bool fast);
 
-    Adafruit_NeoPixel *strip = NULL;
+  void SetValue(int r, int g, int b);
 
-    void sunrise();
-    void sunset();
-    void moonrise();
-    void moonset();
+  unsigned long GetValue();
+
+  void StripShow();
+
+  static void AnimComplete(NeoPatterns *aLedsPtr);
+protected:
+private:
+  int _delay;
+  int _fastDelay;
+  int _maxBrightness;
+  int workingDelay;
+  int numLeds;
+  long startTime;
+  long lastUpdateTime = 0;
+  THandlerFunction _stateChange;
+
+  bool stateChanged = false;
+
+  NeoPatterns *strip = NULL;
+
+  void sunrise();
+  void sunset();
+  void moonrise();
+  void moonset();
 };
 #endif

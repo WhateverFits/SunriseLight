@@ -19,28 +19,25 @@
 #include "Formatting.h"
 #include "Webserver.h"
 
-// MQTT method headers
-void mqttPublish(const char *status);
-void mqttCallback(char *topic, byte *payload, unsigned int length);
-
-// Alarm header
-void setupAlarms();
-
 // Display
 TM1637 tm1637(CLOCK_DIO, CLOCK_CLK);
 
 // Sunrise
-Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, MAXBRIGHTNESS, mqttPublish);
+Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, MAX_BRIGHTNESS, mqttPublish);
 
 // Web Server
 Webserver server = Webserver(80, &sunrise, setupAlarms);
 
 // WiFi connection
+const char* ssids[] = SSIDS;
+const char* passs[] = PASSS;
 ESP8266WiFiMulti wifiMulti;
 WiFiClient mqttWiFiClient;
 PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, mqttWiFiClient);
 
 // NTP and RTC
+IPAddress timeServer(NTPSERVER);
+const char* ntpServerName = NTPSERVERPOOL;
 RTC_DS3231 rtc;
 WiFiUDP Udp;
 
@@ -319,7 +316,7 @@ void getSunriseSunsetTimes()
 // When the button is short pressed, execute this
 void onPressed()
 {
-  bool sunrising = sunrise.Toggle();
+  bool sunrising = sunrise.Toggle(false);
   led.Off();
   led.Blink(200, 800).Repeat(1);
   if (sunrising)
@@ -339,7 +336,7 @@ void onPressed()
 void onPressedForDuration()
 {
   Serial.println("Fast Toggle from long press");
-  bool sunrising = sunrise.FastToggle();
+  bool sunrising = sunrise.Toggle(true);
   led.Off();
   led.Blink(200, 200).Repeat(5);
   if (sunrising)
@@ -522,7 +519,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     displayDim();
   if (action == "FastToggle")
   {
-    bool sunrising = sunrise.FastToggle();
+    bool sunrising = sunrise.Toggle(true);
     if (sunrising)
     {
       tm1637.display("RISE");
@@ -695,7 +692,7 @@ void setupWiFi()
   WiFi.hostname("SunriseLight" + String(buffer));
 #endif
 
-  for (int i = 0; i < wifiCount; i++)
+  for (int i = 0; i < WIFICOUNT; i++)
   {
     wifiMulti.addAP(ssids[i], passs[i]);
   }
@@ -765,11 +762,11 @@ void clockDisplayRight(int value)
   String temp = String(value);
   if (value < 10)
   {
-    temp = "   " + temp;
+    temp = " 00" + temp;
   }
   else if (value < 100)
   {
-    temp = "  " + temp;
+    temp = " 0" + temp;
   }
   else if (value < 1000)
   {
