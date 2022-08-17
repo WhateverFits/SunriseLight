@@ -1,12 +1,30 @@
 #!/bin/bash
-/home/linuxbrew/.linuxbrew/bin/arduino-cli compile --build-properties "build.extra_flags=-DESP8266 -DCONFAQUARIUM" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
-scp /home/sean/dev/SunriseLight/build/esp8266.esp8266.d1_mini/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/Aquarium.ino.bin
-mosquitto_pub -h pi4 -t "home/aquarium/control" -m "Update"
 
-/home/linuxbrew/.linuxbrew/bin/arduino-cli compile --build-properties "build.extra_flags=-DESP8266 -DCONFBEDROOM" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
-scp /home/sean/dev/SunriseLight/build/esp8266.esp8266.d1_mini/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/BedroomClock.ino.bin
-mosquitto_pub -h pi4 -t "home/bedroomclock/control" -m "Update"
+defines=()
+mqtts=()
+files=()
+prompt="$1"
 
-/home/linuxbrew/.linuxbrew/bin/arduino-cli compile --build-properties "build.extra_flags=-DESP8266 -DCONFOFFICE" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
-scp /home/sean/dev/SunriseLight/build/esp8266.esp8266.d1_mini/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/OfficeClock.ino.bin
-mosquitto_pub -h pi4 -t "home/officeclock/control" -m "Update"
+case $prompt in 
+	A) defines+=("AQUARIUM");mqtts+=("aquarium");files+=("Aquarium.ino.bin") ;;
+	B) defines+=("BEDROOM");mqtts+=("bedroomclock");files+=("BedroomClock.ino.bin") ;;
+	O) defines+=("OFFICE");mqtts+=("officeclock");files+=("OfficeClock.ino.bin") ;;
+	*) 
+	defines+=("AQUARIUM");mqtts+=("aquarium");files+=("Aquarium.ino.bin")
+	defines+=("BEDROOM");mqtts+=("bedroomclock");files+=("BedroomClock.ino.bin")
+	defines+=("OFFICE");mqtts+=("officeclock");files+=("OfficeClock.ino.bin");;
+esac
+
+
+
+len=${#defines[@]}
+
+for (( i=0; i<$len; i++))
+do 
+	echo "Building ${mqtts[$i]} with file ${files[$i]}"
+	arduino-cli compile --build-path /home/sean/dev/SunriseLight/build/ --build-property "build.extra_flags=-DESP8266 -DCONF${defines[$i]}" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
+	echo "Publishing ${mqtts[$i]}"
+	scp /home/sean/dev/SunriseLight/build/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/${files[$i]}
+	echo "Upgrading ${mqtts[$i]}"
+	mosquitto_pub -h pi4 -t "home/${mqtts[$i]}/control" -m "Update"
+done
