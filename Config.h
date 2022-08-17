@@ -11,8 +11,6 @@
 #define LEDDELAY 4000
 #define FASTDELAY 10
 
-#define NEO_PIN D7
-
 #ifdef CONFAQUARIUM
 #define CLOCK_DIO D5
 #define CLOCK_CLK D6
@@ -39,9 +37,10 @@
 #define DNSNAME "testcircuit"
 #define CLOCKBRIGHT 7
 #define MAXBRIGHTNESS 255
-#define NEO_PIN D1
+#define DEBUG
 #endif
 
+#define NEO_PIN D7
 #define LED_PIN D0
 #define LED2_PIN D8
 #define BUTTON2_PIN D4

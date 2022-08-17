@@ -6,30 +6,23 @@
 uint8 R = 0;
 uint8 G = 0;
 uint8 B = 0;
-
-void UserPattern1(NeoPatterns *aNeoPatterns, color32_t aPixelColor, color32_t aBackgroundColor, uint16_t aIntervalMillis, 
-        uint8_t aDirection) {
-    aNeoPatterns->ActivePattern = PATTERN_USER_PATTERN1;
+void MyUserPattern1(NeoPatterns *aNeoPatterns, color32_t aPixelColor, color32_t aBackgroundColor, uint16_t aIntervalMillis, uint8_t aDirection) {
     aNeoPatterns->Interval = aIntervalMillis;
-    //aNeoPatterns->Color1 = aPixelColor;
-    //aNeoPatterns->LongValue1.Color2 = abs(128 - tColor);
-    R = GET_RED(aNeoPatterns->Color1);
-    G = GET_GREEN(aNeoPatterns->Color1);
-    B = GET_BLUE(aNeoPatterns->Color1);
-    aNeoPatterns->LongValue1.BackgroundColor = aBackgroundColor;
+    R = COLOR32_GET_RED(aNeoPatterns->Color1);
+    G = COLOR32_GET_GREEN(aNeoPatterns->Color1);
+    B = COLOR32_GET_BLUE(aNeoPatterns->Color1);
     aNeoPatterns->Direction = aDirection;
-    aNeoPatterns->TotalStepCounter = MAXBRIGHTNESS + 150; // Number of colors in B plus where B starts in
-    aNeoPatterns->show();
-    aNeoPatterns->lastUpdate = millis();
+    aNeoPatterns->TotalStepCounter = MAXBRIGHTNESS + 156; // Number of colors in B plus where B starts in
+    aNeoPatterns->ActivePattern = PATTERN_USER_PATTERN1;
 }
 
 bool UserPattern1Update(NeoPatterns *aNeoPatterns, bool aDoUpdate)
 {
-    bool complete = false;
     if (aDoUpdate)
     {
         if (aNeoPatterns->decrementTotalStepCounterAndSetNextIndex())
         {
+            Serial.println("Derped!");
             return true;
         }
 
@@ -48,7 +41,9 @@ bool UserPattern1Update(NeoPatterns *aNeoPatterns, bool aDoUpdate)
                 B++;
             }
             if (R >= MAXBRIGHTNESS && G >= MAXBRIGHTNESS && B >= MAXBRIGHTNESS)
-                complete = true;
+            {
+                aNeoPatterns->TotalStepCounter = 1;
+            }
         }
         else
         {
@@ -64,41 +59,33 @@ bool UserPattern1Update(NeoPatterns *aNeoPatterns, bool aDoUpdate)
             {
                 B--;
             }
-            if (R == 0 && G == 0 && B == 0)
-                complete = true;
+            if (R == 0 && G == 0 && B == 0) {
+                aNeoPatterns->TotalStepCounter = 1;
+            }
         }
+
+        for (int i = 0; i < aNeoPatterns->numPixels(); i++)
+        {
+            if (R < aNeoPatterns->numPixels() && i >= R)
+                aNeoPatterns->setPixelColor(i, 0, 0, 0);
+            else
+                aNeoPatterns->setPixelColor(i, R, G, B);
+        }
+
+        aNeoPatterns->Color1 = COLOR32(R, G, B);
     }
 
-    for (int i = 0; i < aNeoPatterns->numPixels(); i++)
-    {
-      if (R < aNeoPatterns->numPixels() && i >= R)
-        aNeoPatterns->setPixelColor(i, 0, 0, 0);
-      else
-        aNeoPatterns->setPixelColor(i, R, G, B);
-    }
-
-    aNeoPatterns->Color1 = COLOR32(R,G,B);
-
-      //_stateChange(GetState());
-
-    return complete;
+    return false;
 }
 
-void UserPattern2(NeoPatterns *aNeoPatterns, color32_t aPixelColor, uint16_t aIntervalMillis, uint16_t repititions,
-        uint8_t aDirection) {
-    //Serial.print("Pattern 1 Color:");Serial.println(aPixelColor);
-    aNeoPatterns->ActivePattern = PATTERN_USER_PATTERN2;
+void MyUserPattern2(NeoPatterns *aNeoPatterns, color32_t aPixelColor, uint16_t aIntervalMillis, uint16_t repititions, uint8_t aDirection) {
     aNeoPatterns->Interval = aIntervalMillis;
-    //aNeoPatterns->Color1 = aPixelColor;
-    //aNeoPatterns->LongValue1.Color2 = abs(128 - tColor);
-    R = GET_RED(aNeoPatterns->Color1);
-    G = GET_GREEN(aNeoPatterns->Color1);
-    B = GET_BLUE(aNeoPatterns->Color1);
-    //aNeoPatterns->LongValue1.BackgroundColor = aBackgroundColor;
+    R = COLOR32_GET_RED(aNeoPatterns->Color1);
+    G = COLOR32_GET_GREEN(aNeoPatterns->Color1);
+    B = COLOR32_GET_BLUE(aNeoPatterns->Color1);
     aNeoPatterns->Direction = aDirection;
-    aNeoPatterns->TotalStepCounter = MAXBRIGHTNESS; // Number of colors in B
-    aNeoPatterns->show();
-    aNeoPatterns->lastUpdate = millis();
+    aNeoPatterns->TotalStepCounter = MAXBRIGHTNESS + 1; // Number of colors in B plus where B starts in
+    aNeoPatterns->ActivePattern = PATTERN_USER_PATTERN2;
 }
 
 bool UserPattern2Update(NeoPatterns *aNeoPatterns, bool aDoUpdate)
@@ -128,7 +115,10 @@ bool UserPattern2Update(NeoPatterns *aNeoPatterns, bool aDoUpdate)
             }
 
             if (B >= MAXBRIGHTNESS)
+            {
                 complete = true;
+                aNeoPatterns->TotalStepCounter = 1;
+            }
         }
         else
         {
@@ -145,20 +135,20 @@ bool UserPattern2Update(NeoPatterns *aNeoPatterns, bool aDoUpdate)
                 R--;
             }
 
-            if (R == 0 && G == 0 && B == 0)
+            if (R == 0 && G == 0 && B == 0) {
                 complete = true;
+                aNeoPatterns->TotalStepCounter = 1;
+            }
         }
     }
 
     for (int i = 0; i < aNeoPatterns->numPixels(); i++)
     {
-      if (R < aNeoPatterns->numPixels() && i >= R * 4)
+      if (R < aNeoPatterns->numPixels() && i >= B)
         aNeoPatterns->setPixelColor(i, 0, 0, 0);
       else
         aNeoPatterns->setPixelColor(i, R, G, B);
     }
-
-      //_stateChange(GetState());
 
     aNeoPatterns->Color1 = COLOR32(R,G,B);
 

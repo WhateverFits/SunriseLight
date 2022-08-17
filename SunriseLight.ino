@@ -29,15 +29,15 @@ Sunrise sunrise = Sunrise(LEDDELAY, FASTDELAY, LEDS, NEO_PIN, MAX_BRIGHTNESS, mq
 Webserver server = Webserver(80, &sunrise, setupAlarms);
 
 // WiFi connection
-const char* ssids[] = SSIDS;
-const char* passs[] = PASSS;
+const char *ssids[] = SSIDS;
+const char *passs[] = PASSS;
 ESP8266WiFiMulti wifiMulti;
 WiFiClient mqttWiFiClient;
 PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, mqttWiFiClient);
 
 // NTP and RTC
 IPAddress timeServer(NTPSERVER);
-const char* ntpServerName = NTPSERVERPOOL;
+const char *ntpServerName = NTPSERVERPOOL;
 RTC_DS3231 rtc;
 WiFiUDP Udp;
 
@@ -552,7 +552,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     }
   }
   long value = action.toInt();
-  if (value > 0 && value <= 100) {
+  if (value > 0 && value <= 100)
+  {
     int colorValue = (int)((float)MAXBRIGHTNESS * (float)value / 100.0);
     sunrise.SetValue(colorValue, colorValue, colorValue);
   }

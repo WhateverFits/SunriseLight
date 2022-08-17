@@ -2,6 +2,8 @@
 #define SUNRISE_H
 //#include <Adafruit_NeoPixel.h>
 #include <NeoPatterns.h>
+void MyUserPattern1(NeoPatterns *aNeoPatterns, color32_t aPixelColor, color32_t aBackgroundColor, uint16_t aIntervalMillis, uint8_t aDirection);
+void MyUserPattern2(NeoPatterns *aNeoPatterns, color32_t aPixelColor, uint16_t aIntervalMillis, uint16_t repititions, uint8_t aDirection);
 
 class Sunrise
 {
@@ -48,7 +50,7 @@ private:
   int workingDelay;
   int numLeds;
   long startTime;
-  long lastUpdateTime = 0;
+  unsigned long lastUpdateTime = 0;
   THandlerFunction _stateChange;
 
   bool stateChanged = false;
