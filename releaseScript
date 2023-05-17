@@ -4,6 +4,14 @@ defines=()
 mqtts=()
 files=()
 prompt="$1"
+echo $prompt
+if [[ -z "$prompt" ]]; then
+	echo "A - Aquarium"
+	echo "B - Bedroom"
+	echo "O - Office"
+	echo "Blank for all"
+	read prompt
+fi
 
 case $prompt in 
 	A) defines+=("AQUARIUM");mqtts+=("aquarium");files+=("Aquarium.ino.bin") ;;
@@ -23,6 +31,7 @@ for (( i=0; i<$len; i++))
 do 
 	echo "Building ${mqtts[$i]} with file ${files[$i]}"
 	arduino-cli compile --build-path /home/sean/dev/SunriseLight/build/ --build-property "build.extra_flags=-DESP8266 -DCONF${defines[$i]}" -b esp8266:esp8266:d1_mini /home/sean/dev/SunriseLight
+	test $? -ne 0 && echo "Compile failed, exiting" && exit 100
 	echo "Publishing ${mqtts[$i]}"
 	scp /home/sean/dev/SunriseLight/build/SunriseLight.ino.bin pi@pi4:/var/www/cgi-bin/${files[$i]}
 	echo "Upgrading ${mqtts[$i]}"
